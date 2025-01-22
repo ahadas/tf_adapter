@@ -20,6 +20,20 @@ class CustomError(Exception):
         super().__init__(self.message)
 
 class CustomHandler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        logging.info("do_GET was called")
+        run_id = self.path.split("/")[-1]
+        response = {}
+        response['state'] = 'complete'
+        response['environments_requested'] = []
+        response['id'] = run_id
+        response['run'] = { 'artifacts': []}
+        response['result'] = { 'overall': 'passed' }
+        self.send_response(200)
+        self.send_header('Content-type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps(response).encode('utf-8'))
+
     def do_POST(self):
         logging.info("do_POST was called")
         run_id = uuid.uuid4()
@@ -28,10 +42,10 @@ class CustomHandler(BaseHTTPRequestHandler):
         data = json.loads(post_data)
         logging.info(str(run_id))
         logging.info(self.path)
-        pretty_data = json.dumps(data, indent=4)
+        #pretty_data = json.dumps(data, indent=4)
         #logging.info(pretty_data)
 
-        if self.path.endswith('/requests') and not 'hardware' in data['environments'][0]:
+        if self.path.split("/")[-1] == 'requests' and not 'hardware' in data['environments'][0]:
             try:
                 response = self.handleRequest(data)
                 response['id'] = str(run_id)
