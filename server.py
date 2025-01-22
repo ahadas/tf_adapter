@@ -1,12 +1,10 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
-import shlex
-import argparse
-from urllib.parse import urlparse
 import logging
 import uuid
 from kubernetes import client, config
 import requests
+import yaml
 
 #config.load_kube_config()
 v1 = client.CoreV1Api()
@@ -43,12 +41,9 @@ class CustomHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         global runs
         logging.info("do_POST was called")
-        run_id = uuid.uuid4()
-        runs[str(run_id)] = "running"
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data)
-        logging.info(str(run_id))
         logging.info(self.path)
         #pretty_data = json.dumps(data, indent=4)
         #logging.info(pretty_data)
@@ -56,7 +51,6 @@ class CustomHandler(BaseHTTPRequestHandler):
         if self.path.split("/")[-1] == 'requests' and not 'hardware' in data['environments'][0]:
             try:
                 response = self.handleRequest(data)
-                response['id'] = str(run_id)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
@@ -78,12 +72,49 @@ class CustomHandler(BaseHTTPRequestHandler):
 
     def handleRequest(self, data):
         logging.info('handling request')
-        # need to deal with the request args and set post pipelinerun
 
-        response = {}
-        #parsed_url = urlparse(data['object_attributes']['url'])
+        run_id = uuid.uuid4()
+        run_name = 'test-' + str(run_id)
+        global runs
+        runs[str(run_id)] = 'demo/' + run_name
 
-        return response
+        pipelinerun = {
+            'apiVersion': 'tekton.dev/v1',
+            'kind': 'PipelineRun',
+            'metadata': {'name':run_name, 'namespace': 'demo'},
+            'spec': {'params': [
+                {'name': 'plan-name', 'value': data['test']['fmf']['name']},
+                {'name': 'test-name', 'value': data['test']['fmf']['test_name']},
+                {'name': 'hw-target', 'value': data['environments'][0]['variables']['HW_TARGET']},
+                {'name': 'testRunId', 'value': str(run_id)},
+                {'name': 'testsRepo', 'value': data['test']['fmf']['url']},
+                {'name': 'board', 'value': 'rcar-29'},
+                ],
+                'pipelineRef': {'name': 'rcar-s4-test-pipeline'},
+                'taskRunTemplate': {'serviceAccountName': 'pipeline'},
+                'timeouts': '1h0m0s',
+                'workspaces': [
+                    {'name': 'jumpstarter-client-secret', 'secret': 'demo-config'},
+                    {'name': 'test-results', 'volumeClaimTemplate': {
+                        'spec':{
+                            'accessModes': ['ReadWriteOnce'],
+                            'resources': {'requests': {'storage': '10Mi'}},
+                            'storageClassName': 'nfs-csi',
+                            'volumeMode': 'Filesystem',
+                            },
+                        },
+                    },
+                ],
+            },
+        }
+        output = yaml.dump(pipelinerun, sort_keys=False)
+        logging.info(output)
+
+        #TODO post in k8s
+
+        # Adding the run UUID to follow the request
+        pipelinerun['id'] = str(run_id)
+        return pipelinerun
 
 def run(server_class=HTTPServer, handler_class=CustomHandler, port=8080):
     server_address = ('', port)
