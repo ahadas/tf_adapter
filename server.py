@@ -33,11 +33,12 @@ class CustomHandler(BaseHTTPRequestHandler):
 
         if self.path.endswith('/requests') and not 'hardware' in data['environments'][0]:
             try:
-                data = self.handleRequest(data)
+                response = self.handleRequest(data)
+                response['id'] = str(run_id)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
-                self.wfile.write(json.dumps(data).encode())
+                self.wfile.write(json.dumps(response).encode('utf-8'))
             except CustomError as e:
                 self.send_response(e.code)
                 self.send_header('Content-type', 'text/plain')
@@ -55,29 +56,10 @@ class CustomHandler(BaseHTTPRequestHandler):
 
     def handleRequest(self, data):
         logging.info('handling request')
-        return
         # need to deal with the request args and set post pipelinerun
-        note = data['object_attributes']['note']
-        args = shlex.split(note)
-        if args[0] != 'request':
-            raise CustomError('Note doesn\'t start with request', 400)
-
-        parser = argparse.ArgumentParser(prog='/build')
-        parser.add_argument('--arch', nargs='*', help='specify architecture(s) to build on')
 
         response = {}
         #parsed_url = urlparse(data['object_attributes']['url'])
-
-        if '-h' in args or '--help' in args:
-            response['mode'] = 'help'
-            response['message'] = parser.format_help()
-        else:
-            args = parser.parse_args(args[1:])
-
-            if args.arch is not None and args.arch:
-                response['archs'] = {}
-                for arch in ['x86_64', 'aarch64']:
-                    response['archs'][arch] = 'true' if arch in args.arch else 'false'
 
         return response
 
