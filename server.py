@@ -4,6 +4,7 @@ import shlex
 import argparse
 from urllib.parse import urlparse
 import logging
+import uuid
 from kubernetes import client, config
 
 #config.load_kube_config()
@@ -18,6 +19,7 @@ class CustomError(Exception):
 class CustomHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         logging.info("do_POST was called")
+        run_id = uuid.uuid4()
         body = []
         while True:
             line = self.rfile.readline().decode('utf-8').strip()
@@ -32,6 +34,7 @@ class CustomHandler(BaseHTTPRequestHandler):
 
         data = json.loads(''.join(body))
         logging.info(data)
+        logging.info(str(run_id))
 
         try:
             if data[0] == 'request':
