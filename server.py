@@ -20,24 +20,15 @@ class CustomHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         logging.info("do_POST was called")
         run_id = uuid.uuid4()
-        body = []
-        while True:
-            line = self.rfile.readline().decode('utf-8').strip()
-            if line == '':  # End of chunk headers
-                break
-            chunk_size = int(line, 16)
-            if chunk_size == 0:
-                break
-            chunk = self.rfile.read(chunk_size).decode('utf-8')
-            body.append(chunk)
-            self.rfile.readline()
-
-        data = json.loads(''.join(body))
-        logging.info(data)
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        logging.info(post_data)
         logging.info(str(run_id))
+        logging.info(self.path)
+        data = json.loads(post_data)
 
         try:
-            if data[0] == 'request':
+            if self.path.startswith('/v0.1/requests'):
                 data = self.handleRequest(data)
 
             self.send_response(200)
@@ -51,6 +42,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             self.wfile.write(e.message.encode('utf-8'))
 
     def handleRequest(self, data):
+        logging.info('handling request')
         # need to deal with the request args and set post pipelinerun
         note = data['object_attributes']['note']
         args = shlex.split(note)
