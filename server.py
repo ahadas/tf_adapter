@@ -32,26 +32,30 @@ class CustomHandler(BaseHTTPRequestHandler):
         #logging.info(pretty_data)
 
         if self.path.endswith('/requests') and not 'hardware' in data['environments'][0]:
-            data = self.handleRequest(data)
-            self.send_response(200)
+            try:
+                data = self.handleRequest(data)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(data).encode())
+            except CustomError as e:
+                self.send_response(e.code)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
+                self.wfile.write(e.message.encode('utf-8'))
         else:
             logging.info("forwarding")
             url = f"{TF_API_URL}{self.path}"
             logging.info(url)
             response = requests.post(url, data=post_data, headers=self.headers)
             self.send_response(response.status_code)
-        try:
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps(data).encode())
-        except CustomError as e:
-            self.send_response(e.code)
-            self.send_header('Content-type', 'text/plain')
-            self.end_headers()
-            self.wfile.write(e.message.encode('utf-8'))
+            self.wfile.write(response.content)
 
     def handleRequest(self, data):
         logging.info('handling request')
+        return
         # need to deal with the request args and set post pipelinerun
         note = data['object_attributes']['note']
         args = shlex.split(note)
