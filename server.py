@@ -22,15 +22,17 @@ class CustomHandler(BaseHTTPRequestHandler):
         run_id = uuid.uuid4()
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
-        logging.info(post_data)
+        data = json.loads(post_data)
         logging.info(str(run_id))
         logging.info(self.path)
-        data = json.loads(post_data)
+        pretty_data = json.dumps(data, indent=4)
+        logging.info(pretty_data)
 
+        if self.path.endswith('/requests') and not 'hardware' in data['environments'][0]:
+            data = self.handleRequest(data)
+        else:
+            logging.info("forwarding")
         try:
-            if self.path.startswith('/v0.1/requests'):
-                data = self.handleRequest(data)
-
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
