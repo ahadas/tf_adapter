@@ -6,7 +6,7 @@ from urllib.parse import urlparse
 import logging
 from kubernetes import client, config
 
-config.load_kube_config()
+#config.load_kube_config()
 v1 = client.CoreV1Api()
 
 class CustomError(Exception):
@@ -17,6 +17,7 @@ class CustomError(Exception):
 
 class CustomHandler(BaseHTTPRequestHandler):
     def do_POST(self):
+        logging.info("do_POST was called")
         body = []
         while True:
             line = self.rfile.readline().decode('utf-8').strip()
