@@ -23,9 +23,14 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info("do_GET was called")
         run_id = self.path.split("/")[-1]
         if run_id not in runs:
-           self.send_response(404)
+           logging.info("forwarding")
+           url = f"{TF_API_URL}{self.path}"
+           logging.info(url)
+           response = requests.get(url)
+           self.send_response(response.status_code)
            self.send_header('Content-type', 'application/json')
            self.end_headers()
+           self.wfile.write(response.content)
            return
         endpoint = self.path.split("/")[-2]
         if endpoint == 'requests':
