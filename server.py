@@ -6,9 +6,12 @@ from urllib.parse import urlparse
 import logging
 import uuid
 from kubernetes import client, config
+import requests
 
 #config.load_kube_config()
 v1 = client.CoreV1Api()
+
+TF_API_URL='https://api.dev.testing-farm.io'
 
 class CustomError(Exception):
     def __init__(self, message, code):
@@ -26,14 +29,18 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info(str(run_id))
         logging.info(self.path)
         pretty_data = json.dumps(data, indent=4)
-        logging.info(pretty_data)
+        #logging.info(pretty_data)
 
         if self.path.endswith('/requests') and not 'hardware' in data['environments'][0]:
             data = self.handleRequest(data)
+            self.send_response(200)
         else:
             logging.info("forwarding")
+            url = f"{TF_API_URL}{self.path}"
+            logging.info(url)
+            response = requests.post(url, data=post_data, headers=self.headers)
+            self.send_response(response.status_code)
         try:
-            self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(json.dumps(data).encode())
