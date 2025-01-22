@@ -27,16 +27,27 @@ class CustomHandler(BaseHTTPRequestHandler):
            self.send_header('Content-type', 'application/json')
            self.end_headers()
            return
-        response = {}
-        response['state'] = 'complete'
-        response['environments_requested'] = []
-        response['id'] = run_id
-        response['run'] = { 'artifacts': []}
-        response['result'] = { 'overall': 'passed' }
-        self.send_response(200)
-        self.send_header('Content-type', 'application/json')
-        self.end_headers()
-        self.wfile.write(json.dumps(response).encode('utf-8'))
+        endpoint = self.path.split("/")[-2]
+        if endpoint == 'requests':
+            response = {}
+            response['state'] = 'complete'
+            response['environments_requested'] = []
+            response['id'] = run_id
+            response['run'] = { 'artifacts': []}
+            response['result'] = { 'overall': 'passed' }
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+        elif endpoint == 'results':
+            response = {}
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            self.wfile.write(json.dumps(response).encode('utf-8'))
+        else:
+            self.send_response(400)
+
 
     def do_POST(self):
         global runs
