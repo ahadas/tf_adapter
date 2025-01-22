@@ -12,6 +12,7 @@ import requests
 v1 = client.CoreV1Api()
 
 TF_API_URL='https://api.dev.testing-farm.io'
+runs = {}
 
 class CustomError(Exception):
     def __init__(self, message, code):
@@ -23,6 +24,11 @@ class CustomHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         logging.info("do_GET was called")
         run_id = self.path.split("/")[-1]
+        if run_id not in runs:
+           self.send_response(404)
+           self.send_header('Content-type', 'application/json')
+           self.end_headers()
+           return
         response = {}
         response['state'] = 'complete'
         response['environments_requested'] = []
@@ -35,8 +41,10 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(response).encode('utf-8'))
 
     def do_POST(self):
+        global runs
         logging.info("do_POST was called")
         run_id = uuid.uuid4()
+        runs[str(run_id)] = "running"
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data)
