@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tf-adapter
+  labels:
+    app: tf-adapter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tf-adapter
+  template:
+    metadata:
+      labels:
+        app: tf-adapter
+    spec:
+      containers:
+        - name: tf-adapter
+          image: quay.io/ahadas/tf_adapter:latest
+          ports:
+            - containerPort: 8080
