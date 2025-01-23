@@ -1,3 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tmt-results
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -19,3 +30,10 @@ spec:
           image: quay.io/ahadas/tf_adapter:latest
           ports:
             - containerPort: 8080
+          volumeMounts:
+            - name: tmt-results
+              mountPath: /results
+      volumes:
+        - name: tmt-results
+          persistentVolumeClaim:
+            claimName: tmt-results
