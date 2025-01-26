@@ -75,7 +75,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', 'application/xml')
                 self.end_headers()
-                self.wfile.write(data.encode('utf-8'))
+                self.wfile.write(data)
             elif path[-1] == 'arik':
                 self.send_response(200)
                 self.send_header('Content-type', 'plain/text')
