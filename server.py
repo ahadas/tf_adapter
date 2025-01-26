@@ -131,6 +131,8 @@ class CustomHandler(BaseHTTPRequestHandler):
             'kind': 'PipelineRun',
             'metadata': {'name':run_name, 'namespace': 'demo'},
             'spec': {'params': [
+                {'name': 'plan-name', 'value': '^/plans/one'},
+                {'name': 'test-name', 'value': 'one'},
                 {'name': 'hw-target', 'value': data['environments'][0]['variables']['HW_TARGET']},
                 {'name': 'testRunId', 'value': str(run_id)},
                 {'name': 'testsRepo', 'value': gitUrl},
@@ -147,10 +149,12 @@ class CustomHandler(BaseHTTPRequestHandler):
             },
         }
 
+        '''
         if 'name' in data['test']['fmf'].keys():
             pipelinerun['spec']['params'].append({'name': 'plan-name', 'value': data['test']['fmf']['name']})
         if 'test_name' in data['test']['fmf'].keys():
             pipelinerun['spec']['params'].append({'name': 'test-name', 'value': data['test']['fmf']['test_name']})
+        '''
         
         #output = yaml.dump(pipelinerun, sort_keys=False)
         #logging.info(output)
