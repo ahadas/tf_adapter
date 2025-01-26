@@ -19,7 +19,8 @@ results = '''<?xml version="1.0" encoding="UTF-8"?>
   </properties>
   <testsuite name="/kernel-automotive/plans/sst_filesystems/procfs/plan" result="passed" tests="14" stage="complete">
    <logs>
-    <log href="http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/testing-farm/c7009be9-1b54-4b4a-bad3-be088c6d0b9a/arik" name="test log"/>
+    <log href="http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/v0.1/testing-farm/c7009be9-1b54-4b4a-bad3-be088c6d0b9a/ork-plant9awupgb/arik" name="test log"/>
+    <log href="http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/v0.1/testing-farm/c7009be9-1b54-4b4a-bad3-be088c6d0b9a/ork-plant9awupgb" name="workdir"/>
    </logs>
   </testsuite>
  </testsuites>'''
