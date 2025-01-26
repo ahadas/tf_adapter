@@ -9,17 +9,6 @@ import yaml
 config.load_incluster_config()
 #k8s_client = client.ApiClient()
 
-result_example = '<?xml version='1.0' encoding='utf-8'?>
-<testsuites disabled="0" errors="0" failures="0" tests="1" time="0.0">
-  <testsuite name="/plans/one" disabled="0" errors="0" failures="0" skipped="0" tests="1" time="0.0">
-    <testcase name="/tests/one">
-      <system-out>+ echo \'Hello test one\'
-Hello test one
-</system-out>
-    </testcase>
-  </testsuite>
-</testsuites>'
-
 TF_API_URL='https://api.dev.testing-farm.io'
 runs = {}
 
