@@ -68,12 +68,12 @@ class CustomHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', 'application/xml')
                 self.end_headers()
-                self.wfile.write(results)
+                self.wfile.write(results.encode('utf-8'))
             elif path[-1] == 'arik':
                 self.send_response(200)
                 self.send_header('Content-type', 'plain/text')
                 self.end_headers()
-                self.wfile.write('automotive!')
+                self.wfile.write('automotive!'.encode('utf-8'))
         else:
             self.send_response(400)
 
