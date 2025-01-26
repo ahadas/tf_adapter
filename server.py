@@ -69,6 +69,13 @@ class CustomHandler(BaseHTTPRequestHandler):
                 self.send_header('Content-type', 'application/xml')
                 self.end_headers()
                 self.wfile.write(results.encode('utf-8'))
+            elif path[-1] == 'results-junit.xml':
+                with open(f"/results/{run_id}/junit.xml", 'rb') as f:
+                    data = f.read()
+                self.send_response(200)
+                self.send_header('Content-type', 'application/xml')
+                self.end_headers()
+                self.wfile.write(data.encode('utf-8'))
             elif path[-1] == 'arik':
                 self.send_response(200)
                 self.send_header('Content-type', 'plain/text')
