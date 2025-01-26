@@ -12,6 +12,18 @@ config.load_incluster_config()
 TF_API_URL='https://api.dev.testing-farm.io'
 runs = {}
 
+results = '''<?xml version="1.0" encoding="UTF-8"?>
+ <testsuites overall-result="passed">
+  <properties>
+   <property name="baseosci.overall-result" value="passed"/>
+  </properties>
+  <testsuite name="/kernel-automotive/plans/sst_filesystems/procfs/plan" result="passed" tests="14" stage="complete">
+   <logs>
+    <log href="http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/testing-farm/c7009be9-1b54-4b4a-bad3-be088c6d0b9a/arik" name="test log"/>
+   </logs>
+  </testsuite>
+ </testsuites>'''
+
 class CustomError(Exception):
     def __init__(self, message, code):
         self.message = message
@@ -51,6 +63,17 @@ class CustomHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/xml')
             self.end_headers()
             self.wfile.write(json.dumps(response).encode('utf-8'))
+        elif endpoint == 'testing-farm':
+            if path[-1] == 'results.xml':
+                self.send_response(200)
+                self.send_header('Content-type', 'application/xml')
+                self.end_headers()
+                self.wfile.write(results)
+            elif path[-1] == 'arik':
+                self.send_response(200)
+                self.send_header('Content-type', 'plain/text')
+                self.end_headers()
+                self.wfile.write('automotive!')
         else:
             self.send_response(400)
 
