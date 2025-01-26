@@ -33,7 +33,7 @@ spec:
           volumeMounts:
             - name: tmt-results
               mountPath: /results
-        - name:
+        - name: tf-artifacts
           image: quay.io/ahadas/tf_artifacts:latest
           ports:
             - containerPort: 873
