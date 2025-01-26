@@ -147,9 +147,9 @@ class CustomHandler(BaseHTTPRequestHandler):
             },
         }
 
-        if data['test']['fmf']['name']:
+        if 'name' in data['test']['fmf'].keys():
             pipelinerun['spec']['params'].append({'name': 'plan-name', 'value': data['test']['fmf']['name']})
-        if data['test']['fmf']['test_name']:
+        if 'test_name' in data['test']['fmf'].keys():
             pipelinerun['spec']['params'].append({'name': 'test-name', 'value': data['test']['fmf']['test_name']})
         
         #output = yaml.dump(pipelinerun, sort_keys=False)
