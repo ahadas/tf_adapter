@@ -130,8 +130,6 @@ class CustomHandler(BaseHTTPRequestHandler):
             'kind': 'PipelineRun',
             'metadata': {'name':run_name, 'namespace': 'demo'},
             'spec': {'params': [
-                {'name': 'plan-name', 'value': data['test']['fmf']['name']},
-                {'name': 'test-name', 'value': data['test']['fmf'].get('test_name', 'liran')},
                 {'name': 'hw-target', 'value': data['environments'][0]['variables']['HW_TARGET']},
                 {'name': 'testRunId', 'value': str(run_id)},
                 {'name': 'testsRepo', 'value': data['test']['fmf']['url']},
@@ -147,6 +145,12 @@ class CustomHandler(BaseHTTPRequestHandler):
                 ],
             },
         }
+
+        if data['test']['fmf']['name']:
+            pipelinerun['spec']['params'].append({'name': 'plan-name', 'value': data['test']['fmf']['name']})
+        if data['test']['fmf']['test_name']:
+            pipelinerun['spec']['params'].append({'name': 'test-name', 'value': data['test']['fmf']['test_name']})
+        
         #output = yaml.dump(pipelinerun, sort_keys=False)
         #logging.info(output)
 
