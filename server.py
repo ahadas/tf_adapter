@@ -6,8 +6,8 @@ from kubernetes import client, config
 import requests
 import yaml
 
-#config.load_kube_config()
-v1 = client.CoreV1Api()
+config.load_incluster_config()
+#k8s_client = client.ApiClient()
 
 TF_API_URL='https://api.dev.testing-farm.io'
 runs = {}
@@ -105,28 +105,29 @@ class CustomHandler(BaseHTTPRequestHandler):
                 {'name': 'testRunId', 'value': str(run_id)},
                 {'name': 'testsRepo', 'value': data['test']['fmf']['url']},
                 {'name': 'board', 'value': 'rcar-29'},
+                {'name': 'skipProvisioning', 'value': 'true'},
+                {'name': 'clientName', 'value': 'demo'},
                 ],
                 'pipelineRef': {'name': 'rcar-s4-test-pipeline'},
                 'taskRunTemplate': {'serviceAccountName': 'pipeline'},
-                'timeouts': '1h0m0s',
                 'workspaces': [
-                    {'name': 'jumpstarter-client-secret', 'secret': 'demo-config'},
-                    {'name': 'test-results', 'volumeClaimTemplate': {
-                        'spec':{
-                            'accessModes': ['ReadWriteOnce'],
-                            'resources': {'requests': {'storage': '10Mi'}},
-                            'storageClassName': 'nfs-csi',
-                            'volumeMode': 'Filesystem',
-                            },
-                        },
-                    },
+                    {'name': 'jumpstarter-client-secret', 'secret': {'secretName': 'demo-config'}},
+                    {'name': 'test-results', 'persistentVolumeClaim': {'claimName': 'tmt-results'}},
                 ],
             },
         }
-        output = yaml.dump(pipelinerun, sort_keys=False)
-        logging.info(output)
+        #output = yaml.dump(pipelinerun, sort_keys=False)
+        #logging.info(output)
 
-        #TODO post in k8s
+        api_instance = client.CustomObjectsApi()
+        response = api_instance.create_namespaced_custom_object(
+            group='tekton.dev',
+            version='v1',
+            namespace='demo',
+            plural='pipelineruns',
+            body=pipelinerun,
+        )
+        logging.info(response)
 
         # Adding the run UUID to follow the request
         pipelinerun['id'] = str(run_id)
