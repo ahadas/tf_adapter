@@ -19,8 +19,8 @@ results = '''<?xml version="1.0" encoding="UTF-8"?>
   </properties>
   <testsuite name="/kernel-automotive/plans/sst_filesystems/procfs/plan" result="passed" tests="14" stage="complete">
    <logs>
-    <log href="http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/v0.1/testing-farm/c7009be9-1b54-4b4a-bad3-be088c6d0b9a/ork-plant9awupgb/arik" name="test log"/>
-    <log href="http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/v0.1/testing-farm/c7009be9-1b54-4b4a-bad3-be088c6d0b9a/ork-plant9awupgb" name="workdir"/>
+    <log href="http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/v0.1/testing-farm/{0}/arik" name="test log"/>
+    <log href="http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/v0.1/testing-farm/{0}" name="workdir"/>
    </logs>
   </testsuite>
  </testsuites>'''
@@ -69,7 +69,8 @@ class CustomHandler(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header('Content-type', 'application/xml')
                 self.end_headers()
-                self.wfile.write(results.encode('utf-8'))
+                out = results.format(run_id)
+                self.wfile.write(out.encode('utf-8'))
             elif path[-1] == 'results-junit.xml':
                 with open(f"/results/{run_id}/junit.xml", 'rb') as f:
                     data = f.read()
