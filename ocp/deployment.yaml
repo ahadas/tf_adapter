@@ -33,13 +33,35 @@ spec:
           volumeMounts:
             - name: tmt-results
               mountPath: /results
+      volumes:
+        - name: tmt-results
+          persistentVolumeClaim:
+            claimName: tmt-results
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tf-artifacts
+  labels:
+    app: tf-artifacts
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tf-artifacts
+  template:
+    metadata:
+      labels:
+        app: tf-artifacts
+    spec:
+      containers:
         - name: tf-artifacts
           image: quay.io/ahadas/tf_artifacts:latest
           ports:
             - containerPort: 873
           volumeMounts:
             - name: tmt-results
-              mountPath: /results
+              mountPath: /srv/results
       volumes:
         - name: tmt-results
           persistentVolumeClaim:
