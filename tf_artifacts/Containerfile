@@ -2,4 +2,4 @@ FROM fedora:latest
 
 COPY rsync.config /etc/rsync.config
 RUN dnf -y install rsync
-ENTRYPOINT ["rsync", "--daemon", "--no-detach", "--config", "/etc/rsync.config"]
+ENTRYPOINT ["rsync", "--daemon", "--no-detach", "--config", "/etc/rsync.config", "--port", "8090"]
