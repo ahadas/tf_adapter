@@ -19,8 +19,8 @@ results = '''<?xml version="1.0" encoding="UTF-8"?>
   </properties>
   <testsuite name="/kernel-automotive/plans/sst_filesystems/procfs/plan" result="passed" tests="14" stage="complete">
    <logs>
-    <log href="http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/v0.1/testing-farm/{0}/arik" name="test log"/>
-    <log href="http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/v0.1/testing-farm/{0}" name="workdir"/>
+    <log href="https:/artifacts.osci.redhat.com/{0}/arik" name="test log"/>
+    <log href="https://artifacts.osci.redhat.com/{0}" name="workdir"/>
    </logs>
   </testsuite>
  </testsuites>'''
