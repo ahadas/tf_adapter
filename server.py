@@ -3,6 +3,7 @@ import json
 import logging
 import uuid
 from kubernetes import client, config
+from kubernetes.client.rest import ApiException
 import requests
 import yaml
 
@@ -49,11 +50,39 @@ class CustomHandler(BaseHTTPRequestHandler):
         endpoint = path[2]
         if endpoint == 'requests':
             response = {}
-            response['state'] = 'complete'
+            runStatus = fetchRun(getRunName(run_id))
+            try:
+                conds = runStatus['status'].get('conditions') # Succeeded -> reasons: PipelineRunPending, Running, Succeeded, Failed, Cancelled, Timeout. Status->True/False/Unknown
+                if not conds:
+                    response['state'] = 'new'
+                    response['result'] = { 'overall': 'unknown'} # maybe need to set it to everything unless we get a final result
+                else:
+                    conds = conds[0]
+                    condition_reason = conds['reason']
+                    #TODO check the exact mappings of the OCP to TF
+                    if condition_reason == 'PipelineRunPending':
+                        response['state'] = 'queued'
+                    elif condition_reason == 'Running':
+                        response['state'] = 'running'
+                    elif condition_reason == 'Completed' and conds['type'] == 'Succeeded':
+                        response['state'] = 'complete' # new/queued/running/complete/error
+                        response['result'] = { 'overall': 'passed' } #passed/failed/error/unknown/skipped
+                    elif condition_reason == 'Failed' or condition_reason == 'Completed' and conds['type'] == 'Failed':
+                        response['state'] = 'complete'
+                        response['result'] = { 'overall': 'failed' }
+                    elif condition_reason == 'Cancelled':
+                        response['state'] = 'complete'
+                        response['result'] = { 'overall': 'failed' }
+                    elif condition_reason == 'Timeout':
+                        response['state'] = 'complete'
+                        response['result'] = { 'overall': 'failed' }          
+            except:
+                response['state'] = 'new'
+                response['result'] = { 'overall': 'unknown'}
+
             response['environments_requested'] = []
             response['id'] = run_id
             response['run'] = { 'artifacts': []}
-            response['result'] = { 'overall': 'passed' }
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -123,7 +152,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info('handling request')
 
         run_id = uuid.uuid4()
-        run_name = 'test-' + str(run_id)
+        run_name = getRunName(run_id)
         global runs
         runs[str(run_id)] = 'demo/' + run_name
         gitUrl = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_URL', data['test']['fmf']['url'])
@@ -174,6 +203,22 @@ class CustomHandler(BaseHTTPRequestHandler):
         # Adding the run UUID to follow the request
         pipelinerun['id'] = str(run_id)
         return pipelinerun
+
+def getRunName(run_id):
+    return 'test-' + str(run_id)
+
+def fetchRun(run_name):
+    try:
+        api_instance = client.CustomObjectsApi()
+        return api_instance.get_namespaced_custom_object(
+            group='tekton.dev',
+            version='v1',
+            namespace='demo',
+            plural='pipelineruns',
+            name=run_name
+        )
+    except ApiException as e:
+        print("Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s\n" % e)
 
 def run(server_class=HTTPServer, handler_class=CustomHandler, port=8080):
     server_address = ('', port)
