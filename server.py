@@ -34,7 +34,7 @@ class CustomError(Exception):
 
 class CustomHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        logging.info("do_GET was called")
+        logging.info("received a GET request")
         path = self.path.split("/")
         run_id = path[3] if len(path) > 3 else None
         if run_id not in runs:
@@ -118,7 +118,7 @@ class CustomHandler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         global runs
-        logging.info("do_POST was called")
+        logging.info("received a POST request")
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data)
