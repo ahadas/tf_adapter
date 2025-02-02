@@ -23,8 +23,8 @@ spec:
             privileged: true
           env:
             - name: TESTING_FARM_API_URL
-              value: http://tf-adapter-demo.apps.zmeya.rh-internal.ocm
+              value: http://tf-adapter.demo.svc.cluster.local:8080
             - name: TF_RESULTS_URL
-              value: http://tf-adapter-demo.apps.zmeya.rh-internal.ocm/v0.1/testing-farm
+              value: http://tf-adapter.demo.svc.cluster.local:8080/v0.1/testing-farm
             - name: TF_RSYNC_ARTIFACTS_URL
               value: rsync://tf-artifacts.demo.svc.cluster.local:8090/artifacts
