@@ -41,7 +41,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             endpoint = path[2]
             if endpoint == 'requests':
                 response = {}
-                response['state'], result = self.get_state_and_result(run_id)
+                response['state'], result = get_state_and_result(run_id)
                 response['result'] = {'overall': result}
                 response['environments_requested'] = []
                 response['id'] = run_id
@@ -78,7 +78,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             else:
                 self.send_response(400)
         else:
-            response = self.forwardGet()
+            response = self.forward_get()
             self.send_response(response.status_code)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -97,7 +97,7 @@ class CustomHandler(BaseHTTPRequestHandler):
 
         if self.path.split("/")[-1] == 'requests' and not 'hardware' in data['environments'][0]:
             try:
-                response = self.handleRequest(data)
+                response = self.handle_request(data)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
@@ -108,49 +108,27 @@ class CustomHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(e.message.encode('utf-8'))
         else:
-            response = self.forwardPost(post_data)
+            response = self.forward_post(post_data)
             self.send_response(response.status_code)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(response.content)
 
-    def forwardGet(self):
+    def forward_get(self):
         url = f"{TF_API_URL}{self.path}"
         logging.info(f"forwarding a GET request to {url}")
         return requests.get(url)
 
-    def forwardPost(self, post_data):
+    def forward_post(self, post_data):
         url = f"{TF_API_URL}{self.path}"
         logging.info(f"forwarding a POST request to {url}")
         return requests.post(url, data=post_data, headers=self.headers)
 
-    def get_state_and_result(self, run_id):
-        runStatus = fetchRun(getRunName(run_id))
-        try:
-            conds = runStatus['status'].get(
-                'conditions')  # Succeeded -> reasons: PipelineRunPending, Running, Succeeded, Failed, Cancelled, Timeout. Status->True/False/Unknown
-            if not conds:
-                return 'new', 'unknown'
-            else:
-                conds = conds[0]
-                match conds['reason']:
-                # TODO check the exact mappings of the OCP to TF
-                    case 'PipelineRunPending':
-                        return 'queued', 'unknown'
-                    case 'Running':
-                        return 'running', 'unknown'
-                    case 'Completed':
-                        return 'complete', 'passed' if conds['type'] == 'Succeeded' else 'failed'
-                    case 'Failed' | 'Cancelled' | 'Timeout':
-                        return 'complete', 'failed'
-        except:
-            return 'new', 'unknown'
-
-    def handleRequest(self, data):
+    def handle_request(self, data):
         logging.info('handling request')
 
         run_id = uuid.uuid4()
-        run_name = getRunName(run_id)
+        run_name = get_run_name(run_id)
         global runs
         runs[str(run_id)] = 'demo/' + run_name
         gitUrl = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_URL', data['test']['fmf']['url'])
@@ -202,10 +180,10 @@ class CustomHandler(BaseHTTPRequestHandler):
         pipelinerun['id'] = str(run_id)
         return pipelinerun
 
-def getRunName(run_id):
-    return 'test-' + str(run_id)
+def get_run_name(run_id):
+    return f"test-{run_id}"
 
-def fetchRun(run_name):
+def fetch_run(run_name):
     try:
         api_instance = client.CustomObjectsApi()
         return api_instance.get_namespaced_custom_object(
@@ -217,6 +195,28 @@ def fetchRun(run_name):
         )
     except ApiException as e:
         print("Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s\n" % e)
+
+def get_state_and_result(run_id):
+    runStatus = fetch_run(get_run_name(run_id))
+    try:
+        conds = runStatus['status'].get(
+            'conditions')  # Succeeded -> reasons: PipelineRunPending, Running, Succeeded, Failed, Cancelled, Timeout. Status->True/False/Unknown
+        if not conds:
+            return 'new', 'unknown'
+        else:
+            conds = conds[0]
+            match conds['reason']:
+            # TODO check the exact mappings of the OCP to TF
+                case 'PipelineRunPending':
+                    return 'queued', 'unknown'
+                case 'Running':
+                    return 'running', 'unknown'
+                case 'Completed':
+                    return 'complete', 'passed' if conds['type'] == 'Succeeded' else 'failed'
+                case 'Failed' | 'Cancelled' | 'Timeout':
+                    return 'complete', 'failed'
+    except:
+        return 'new', 'unknown'
 
 def run(server_class=HTTPServer, handler_class=CustomHandler, port=8080):
     server_address = ('', port)
