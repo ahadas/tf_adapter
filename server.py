@@ -41,8 +41,8 @@ class CustomHandler(BaseHTTPRequestHandler):
             endpoint = path[2]
             if endpoint == 'requests':
                 response = {}
-                response['state'], response['result'] = get_state_and_result(run_id)
-
+                response['state'], result = self.get_state_and_result(run_id)
+                response['result'] = {'overall': result}
                 response['environments_requested'] = []
                 response['id'] = run_id
                 response['run'] = { 'artifacts': []}
@@ -125,27 +125,26 @@ class CustomHandler(BaseHTTPRequestHandler):
         return requests.post(url, data=post_data, headers=self.headers)
 
     def get_state_and_result(self, run_id):
-        unknown_result = {'overall': 'unknown'}
         runStatus = fetchRun(getRunName(run_id))
         try:
             conds = runStatus['status'].get(
                 'conditions')  # Succeeded -> reasons: PipelineRunPending, Running, Succeeded, Failed, Cancelled, Timeout. Status->True/False/Unknown
             if not conds:
-                return 'new', unknown_result
+                return 'new', 'unknown'
             else:
                 conds = conds[0]
                 match conds['reason']:
                 # TODO check the exact mappings of the OCP to TF
                     case 'PipelineRunPending':
-                        return 'queued', unknown_result
+                        return 'queued', 'unknown'
                     case 'Running':
-                        return 'running', unknown_result
+                        return 'running', 'unknown'
                     case 'Completed':
-                        return 'complete', {'overall': 'passed'} if conds['type'] == 'Succeeded' else {'overall': 'failed'}
+                        return 'complete', 'passed' if conds['type'] == 'Succeeded' else 'failed'
                     case 'Failed' | 'Cancelled' | 'Timeout':
-                        return 'complete', {'overall': 'failed'}
+                        return 'complete', 'failed'
         except:
-            return 'new', {'overall': 'unknown'}
+            return 'new', 'unknown'
 
     def handleRequest(self, data):
         logging.info('handling request')
