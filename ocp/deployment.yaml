@@ -66,3 +66,31 @@ spec:
         - name: tmt-results
           persistentVolumeClaim:
             claimName: tmt-results
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: tf-api
+  name: tf-api
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: tf-adapter
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: artifacts
+  name: artifacts
+spec:
+  ports:
+  - port: 873
+    protocol: TCP
+    targetPort: 8090
+  selector:
+    app: tf-artifacts
