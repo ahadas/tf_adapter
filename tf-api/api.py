@@ -94,10 +94,10 @@ class CustomHandler(BaseHTTPRequestHandler):
     def handle_post_request(self, data):
         logging.info('handling request')
 
-        run_id = uuid.uuid4()
+        run_id = str(uuid.uuid4())
         run_name = get_run_name(run_id)
         global runs
-        runs[str(run_id)] = f"{POD_NAMESPACE}/{run_name}"
+        runs[run_id] = f"{POD_NAMESPACE}/{run_name}"
         git_url = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_URL', data['test']['fmf']['url'])
 
         pipelinerun = {
@@ -108,7 +108,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                 {'name': 'plan-name', 'value': '^/plans/one'},
                 {'name': 'test-name', 'value': 'one'},
                 {'name': 'hw-target', 'value': data['environments'][0]['variables']['HW_TARGET']},
-                {'name': 'testRunId', 'value': str(run_id)},
+                {'name': 'testRunId', 'value': run_id},
                 {'name': 'testsRepo', 'value': git_url},
                 {'name': 'board', 'value': 'rcar-29'},
                 {'name': 'skipProvisioning', 'value': 'true'},
@@ -144,7 +144,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info(response)
 
         # Adding the run UUID to follow the request
-        pipelinerun['id'] = str(run_id)
+        pipelinerun['id'] = run_id
         return pipelinerun
 
 def get_run_name(run_id):
