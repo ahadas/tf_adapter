@@ -5,12 +5,11 @@ import uuid
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 import requests
-import yaml
+import os
 
 config.load_incluster_config()
-#k8s_client = client.ApiClient()
 
-TF_API_URL='https://api.dev.testing-farm.io'
+TF_API_URL = os.environ.get("TF_API_URL")
 runs = {}
 
 results = '''<?xml version="1.0" encoding="UTF-8"?>
