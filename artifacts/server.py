@@ -6,7 +6,6 @@ import requests
 import os
 
 TF_RESULTS_URL = os.environ.get("TF_RESULTS_URL")
-runs = {}
 
 results = '''<?xml version="1.0" encoding="UTF-8"?>
  <testsuites overall-result="passed">
@@ -31,7 +30,8 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info(f"received a GET request ({self.path})")
         path = self.path.split("/")
         run_id = path[1] if len(path) > 2 else None
-        if os.path.isdir(f"/srv/results/{run_id}"):
+        workdir = f"/srv/results/{run_id}"
+        if os.path.isdir(workdir):
             match path[2]:
                 case 'results.xml':
                     self.send_response(200)
@@ -40,7 +40,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     out = results.format(run_id)
                     self.wfile.write(out.encode('utf-8'))
                 case 'results-junit.xml':
-                    with open(f"/srv/results/{run_id}/junit.xml", 'rb') as f:
+                    with open(f"{workdir}/junit.xml", 'rb') as f:
                         data = f.read()
                     self.send_response(200)
                     self.send_header('Content-type', 'application/xml')

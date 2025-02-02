@@ -30,17 +30,10 @@ spec:
           image: quay.io/ahadas/tf_adapter:latest
           ports:
             - containerPort: 8080
-          volumeMounts:
-            - name: tmt-results
-              mountPath: /results
           env:
             - name: TF_API_URL
               value: https://api.dev.testing-farm.io
       serviceAccountName: pipeline
-      volumes:
-        - name: tmt-results
-          persistentVolumeClaim:
-            claimName: tmt-results
 ---
 apiVersion: apps/v1
 kind: Deployment
