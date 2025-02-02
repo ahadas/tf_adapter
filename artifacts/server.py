@@ -19,12 +19,6 @@ results = '''<?xml version="1.0" encoding="UTF-8"?>
   </testsuite>
  </testsuites>'''
 
-class CustomError(Exception):
-    def __init__(self, message, code):
-        self.message = message
-        self.code = code
-        super().__init__(self.message)
-
 class CustomHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         logging.info(f"received a GET request ({self.path})")

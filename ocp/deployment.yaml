@@ -33,6 +33,10 @@ spec:
           env:
             - name: TF_API_URL
               value: https://api.dev.testing-farm.io
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
       serviceAccountName: pipeline
 ---
 apiVersion: apps/v1

@@ -102,7 +102,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         pipelinerun = {
             'apiVersion': 'tekton.dev/v1',
             'kind': 'PipelineRun',
-            'metadata': {'name':run_name, 'namespace': 'demo'},
+            'metadata': {'name':run_name, 'namespace': os.environ.get("POD_NAMESPACE")},
             'spec': {'params': [
                 {'name': 'plan-name', 'value': '^/plans/one'},
                 {'name': 'test-name', 'value': 'one'},
