@@ -3,7 +3,8 @@ FROM fedora:latest
 RUN dnf -y install rsync python3
 
 COPY rsync.config /etc/rsync.config
-COPY entrypoint.sh server.py /usr/local
+COPY entrypoint.sh /usr/local/entrypoint.sh
+COPY server.py /usr/local/server.py
 RUN chmod +x /usr/local/entrypoint.sh
 
 ENTRYPOINT ["/usr/local/entrypoint.sh"]
