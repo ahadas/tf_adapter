@@ -41,35 +41,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             endpoint = path[2]
             if endpoint == 'requests':
                 response = {}
-                runStatus = fetchRun(getRunName(run_id))
-                try:
-                    conds = runStatus['status'].get('conditions') # Succeeded -> reasons: PipelineRunPending, Running, Succeeded, Failed, Cancelled, Timeout. Status->True/False/Unknown
-                    if not conds:
-                        response['state'] = 'new'
-                        response['result'] = { 'overall': 'unknown'} # maybe need to set it to everything unless we get a final result
-                    else:
-                        conds = conds[0]
-                        condition_reason = conds['reason']
-                        #TODO check the exact mappings of the OCP to TF
-                        if condition_reason == 'PipelineRunPending':
-                            response['state'] = 'queued'
-                        elif condition_reason == 'Running':
-                            response['state'] = 'running'
-                        elif condition_reason == 'Completed' and conds['type'] == 'Succeeded':
-                            response['state'] = 'complete' # new/queued/running/complete/error
-                            response['result'] = { 'overall': 'passed' } #passed/failed/error/unknown/skipped
-                        elif condition_reason == 'Failed' or condition_reason == 'Completed' and conds['type'] == 'Failed':
-                            response['state'] = 'complete'
-                            response['result'] = { 'overall': 'failed' }
-                        elif condition_reason == 'Cancelled':
-                            response['state'] = 'complete'
-                            response['result'] = { 'overall': 'failed' }
-                        elif condition_reason == 'Timeout':
-                            response['state'] = 'complete'
-                            response['result'] = { 'overall': 'failed' }
-                except:
-                    response['state'] = 'new'
-                    response['result'] = { 'overall': 'unknown'}
+                response['state'], response['result'] = get_state_and_result(run_id)
 
                 response['environments_requested'] = []
                 response['id'] = run_id
@@ -151,6 +123,29 @@ class CustomHandler(BaseHTTPRequestHandler):
         url = f"{TF_API_URL}{self.path}"
         logging.info(f"forwarding a POST request to {url}")
         return requests.post(url, data=post_data, headers=self.headers)
+
+    def get_state_and_result(self, run_id):
+        unknown_result = {'overall': 'unknown'}
+        runStatus = fetchRun(getRunName(run_id))
+        try:
+            conds = runStatus['status'].get(
+                'conditions')  # Succeeded -> reasons: PipelineRunPending, Running, Succeeded, Failed, Cancelled, Timeout. Status->True/False/Unknown
+            if not conds:
+                return 'new', unknown_result
+            else:
+                conds = conds[0]
+                match conds['reason']:
+                # TODO check the exact mappings of the OCP to TF
+                    case 'PipelineRunPending':
+                        return 'queued', unknown_result
+                    case 'Running':
+                        return 'running', unknown_result
+                    case 'Completed':
+                        return 'complete', {'overall': 'passed'} if conds['type'] == 'Succeeded' else {'overall': 'failed'}
+                    case 'Failed' | 'Cancelled' | 'Timeout':
+                        return 'complete', {'overall': 'failed'}
+        except:
+            return 'new', {'overall': 'unknown'}
 
     def handleRequest(self, data):
         logging.info('handling request')
