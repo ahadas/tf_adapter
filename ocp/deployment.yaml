@@ -67,6 +67,9 @@ spec:
           volumeMounts:
             - name: tmt-results
               mountPath: /srv/results
+          env:
+            - name: TF_RESULTS_URL
+              value: https://artifacts.osci.redhat.com
       volumes:
         - name: tmt-results
           persistentVolumeClaim:
@@ -97,8 +100,23 @@ spec:
   - port: 80
     protocol: TCP
     targetPort: 8080
+    name: server
   - port: 873
     protocol: TCP
     targetPort: 8090
+    name: rsync
   selector:
     app: artifacts
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  labels:
+    app: artifacts
+  name: artifacts
+spec:
+  port:
+    targetPort: server
+  to:
+    kind: Service
+    name: artifacts

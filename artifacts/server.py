@@ -5,7 +5,7 @@ import uuid
 import requests
 import os
 
-TF_API_URL = os.environ.get("TF_API_URL")
+TF_RESULTS_URL = os.environ.get("TF_RESULTS_URL")
 runs = {}
 
 results = '''<?xml version="1.0" encoding="UTF-8"?>

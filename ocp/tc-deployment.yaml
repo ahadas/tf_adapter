@@ -36,7 +36,7 @@ spec:
             - name: TESTING_FARM_API_URL
               value: http://tf-api.demo.svc.cluster.local
             - name: TF_RESULTS_URL
-              value: http://tf-api.demo.svc.cluster.local/v0.1/testing-farm
+              value: http://artifacts-demo.apps.zmeya.rh-internal.ocm
             - name: TF_RSYNC_ARTIFACTS_URL
               value: rsync://artifacts.demo.svc.cluster.local/artifacts
           volumeMounts:
