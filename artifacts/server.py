@@ -28,31 +28,24 @@ class CustomError(Exception):
 
 class CustomHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        logging.info("received a GET request")
+        logging.info(f"received a GET request ({self.path})")
         path = self.path.split("/")
-        run_id = path[3] if len(path) > 3 else None
-        if run_id in runs:
-            endpoint = path[2]
-            match endpoint:
-                case 'results':
+        run_id = path[1] if len(path) > 2 else None
+        if os.path.isdir(f"/srv/results/{run_id}"):
+            match path[2]:
+                case 'results.xml':
                     self.send_response(200)
                     self.send_header('Content-type', 'application/xml')
                     self.end_headers()
-                    self.wfile.write(json.dumps({}).encode('utf-8'))
-                case 'testing-farm':
-                    if path[-1] == 'results.xml':
-                        self.send_response(200)
-                        self.send_header('Content-type', 'application/xml')
-                        self.end_headers()
-                        out = results.format(run_id)
-                        self.wfile.write(out.encode('utf-8'))
-                    elif path[-1] == 'results-junit.xml':
-                        with open(f"/results/{run_id}/junit.xml", 'rb') as f:
-                            data = f.read()
-                        self.send_response(200)
-                        self.send_header('Content-type', 'application/xml')
-                        self.end_headers()
-                        self.wfile.write(data)
+                    out = results.format(run_id)
+                    self.wfile.write(out.encode('utf-8'))
+                case 'results-junit.xml':
+                    with open(f"/srv/results/{run_id}/junit.xml", 'rb') as f:
+                        data = f.read()
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/xml')
+                    self.end_headers()
+                    self.wfile.write(data)
                 case _:
                     self.send_response(400)
         else:
@@ -63,7 +56,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             self.wfile.write(response.content)
 
     def forward_get(self):
-        url = f"{TF_API_URL}{self.path}"
+        url = f"{TF_RESULTS_URL}{self.path}"
         logging.info(f"forwarding a GET request to {url}")
         return requests.get(url)
 
