@@ -12,27 +12,28 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tf-adapter
+  name: tf-api
   labels:
-    app: tf-adapter
+    app: tf-api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: tf-adapter
+      app: tf-api
   template:
     metadata:
       labels:
-        app: tf-adapter
+        app: tf-api
     spec:
       containers:
-        - name: tf-adapter
+        - name: tf-api
           image: quay.io/ahadas/tf_adapter:latest
           ports:
             - containerPort: 8080
           volumeMounts:
             - name: tmt-results
               mountPath: /results
+      serviceAccountName: pipeline
       volumes:
         - name: tmt-results
           persistentVolumeClaim:
@@ -41,21 +42,21 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: tf-artifacts
+  name: artifacts
   labels:
-    app: tf-artifacts
+    app: artifacts
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: tf-artifacts
+      app: artifacts
   template:
     metadata:
       labels:
-        app: tf-artifacts
+        app: artifacts
     spec:
       containers:
-        - name: tf-artifacts
+        - name: artifacts
           image: quay.io/ahadas/tf_artifacts:latest
           ports:
             - containerPort: 8090
@@ -79,7 +80,7 @@ spec:
     protocol: TCP
     targetPort: 8080
   selector:
-    app: tf-adapter
+    app: tf-api
 ---
 apiVersion: v1
 kind: Service
@@ -93,4 +94,4 @@ spec:
     protocol: TCP
     targetPort: 8090
   selector:
-    app: tf-artifacts
+    app: artifacts

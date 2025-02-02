@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: tc-db
+  name: test-console-storage
 spec:
   accessModes:
     - ReadWriteOnce
@@ -36,13 +36,13 @@ spec:
             - name: TESTING_FARM_API_URL
               value: http://tf-api.demo.svc.cluster.local
             - name: TF_RESULTS_URL
-              value: http://tf-adapter.demo.svc.cluster.local/v0.1/testing-farm
+              value: http://tf-api.demo.svc.cluster.local/v0.1/testing-farm
             - name: TF_RSYNC_ARTIFACTS_URL
               value: rsync://artifacts.demo.svc.cluster.local/artifacts
           volumeMounts:
-            - name: tc-db
+            - name: test-console-storage
               mountPath: /var/lib/test-console
       volumes:
-        - name: tc-db
+        - name: test-console-storage
           persistentVolumeClaim:
-            claimName: tc-db
+            claimName: test-console-storage
