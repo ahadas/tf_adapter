@@ -10,6 +10,7 @@ import os
 config.load_incluster_config()
 
 TF_API_URL = os.environ.get("TF_API_URL")
+POD_NAMESPACE = os.environ.get("POD_NAMESPACE")
 runs = {}
 
 class CustomError(Exception):
@@ -96,13 +97,13 @@ class CustomHandler(BaseHTTPRequestHandler):
         run_id = uuid.uuid4()
         run_name = get_run_name(run_id)
         global runs
-        runs[str(run_id)] = 'demo/' + run_name
+        runs[str(run_id)] = f"{POD_NAMESPACE}/{run_name}"
         git_url = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_URL', data['test']['fmf']['url'])
 
         pipelinerun = {
             'apiVersion': 'tekton.dev/v1',
             'kind': 'PipelineRun',
-            'metadata': {'name':run_name, 'namespace': os.environ.get("POD_NAMESPACE")},
+            'metadata': {'name':run_name, 'namespace': POD_NAMESPACE},
             'spec': {'params': [
                 {'name': 'plan-name', 'value': '^/plans/one'},
                 {'name': 'test-name', 'value': 'one'},
