@@ -1,5 +1,9 @@
 FROM fedora:latest
 
-COPY rsync.config /etc/rsync.config
 RUN dnf -y install rsync
-ENTRYPOINT ["rsync", "--daemon", "--no-detach", "--config", "/etc/rsync.config", "--port", "8090"]
+
+COPY rsync.config /etc/rsync.config
+COPY entrypoint.sh /usr/local
+RUN chmod +x /usr/local/entrypoint.sh
+
+ENTRYPOINT ["/usr/local/entrypoint.sh"]
