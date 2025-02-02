@@ -37,83 +37,80 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info("received a GET request")
         path = self.path.split("/")
         run_id = path[3] if len(path) > 3 else None
-        if run_id not in runs:
-           logging.info("forwarding")
-           url = f"{TF_API_URL}{self.path}"
-           logging.info(url)
-           response = requests.get(url)
-           self.send_response(response.status_code)
-           self.send_header('Content-type', 'application/json')
-           self.end_headers()
-           self.wfile.write(response.content)
-           return
-        endpoint = path[2]
-        if endpoint == 'requests':
-            response = {}
-            runStatus = fetchRun(getRunName(run_id))
-            try:
-                conds = runStatus['status'].get('conditions') # Succeeded -> reasons: PipelineRunPending, Running, Succeeded, Failed, Cancelled, Timeout. Status->True/False/Unknown
-                if not conds:
+        if run_id in runs:
+            endpoint = path[2]
+            if endpoint == 'requests':
+                response = {}
+                runStatus = fetchRun(getRunName(run_id))
+                try:
+                    conds = runStatus['status'].get('conditions') # Succeeded -> reasons: PipelineRunPending, Running, Succeeded, Failed, Cancelled, Timeout. Status->True/False/Unknown
+                    if not conds:
+                        response['state'] = 'new'
+                        response['result'] = { 'overall': 'unknown'} # maybe need to set it to everything unless we get a final result
+                    else:
+                        conds = conds[0]
+                        condition_reason = conds['reason']
+                        #TODO check the exact mappings of the OCP to TF
+                        if condition_reason == 'PipelineRunPending':
+                            response['state'] = 'queued'
+                        elif condition_reason == 'Running':
+                            response['state'] = 'running'
+                        elif condition_reason == 'Completed' and conds['type'] == 'Succeeded':
+                            response['state'] = 'complete' # new/queued/running/complete/error
+                            response['result'] = { 'overall': 'passed' } #passed/failed/error/unknown/skipped
+                        elif condition_reason == 'Failed' or condition_reason == 'Completed' and conds['type'] == 'Failed':
+                            response['state'] = 'complete'
+                            response['result'] = { 'overall': 'failed' }
+                        elif condition_reason == 'Cancelled':
+                            response['state'] = 'complete'
+                            response['result'] = { 'overall': 'failed' }
+                        elif condition_reason == 'Timeout':
+                            response['state'] = 'complete'
+                            response['result'] = { 'overall': 'failed' }
+                except:
                     response['state'] = 'new'
-                    response['result'] = { 'overall': 'unknown'} # maybe need to set it to everything unless we get a final result
-                else:
-                    conds = conds[0]
-                    condition_reason = conds['reason']
-                    #TODO check the exact mappings of the OCP to TF
-                    if condition_reason == 'PipelineRunPending':
-                        response['state'] = 'queued'
-                    elif condition_reason == 'Running':
-                        response['state'] = 'running'
-                    elif condition_reason == 'Completed' and conds['type'] == 'Succeeded':
-                        response['state'] = 'complete' # new/queued/running/complete/error
-                        response['result'] = { 'overall': 'passed' } #passed/failed/error/unknown/skipped
-                    elif condition_reason == 'Failed' or condition_reason == 'Completed' and conds['type'] == 'Failed':
-                        response['state'] = 'complete'
-                        response['result'] = { 'overall': 'failed' }
-                    elif condition_reason == 'Cancelled':
-                        response['state'] = 'complete'
-                        response['result'] = { 'overall': 'failed' }
-                    elif condition_reason == 'Timeout':
-                        response['state'] = 'complete'
-                        response['result'] = { 'overall': 'failed' }          
-            except:
-                response['state'] = 'new'
-                response['result'] = { 'overall': 'unknown'}
+                    response['result'] = { 'overall': 'unknown'}
 
-            response['environments_requested'] = []
-            response['id'] = run_id
-            response['run'] = { 'artifacts': []}
-            self.send_response(200)
+                response['environments_requested'] = []
+                response['id'] = run_id
+                response['run'] = { 'artifacts': []}
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            elif endpoint == 'results':
+                response = {}
+                self.send_response(200)
+                self.send_header('Content-type', 'application/xml')
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            elif endpoint == 'testing-farm':
+                if path[-1] == 'results.xml':
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/xml')
+                    self.end_headers()
+                    out = results.format(run_id)
+                    self.wfile.write(out.encode('utf-8'))
+                elif path[-1] == 'results-junit.xml':
+                    with open(f"/results/{run_id}/junit.xml", 'rb') as f:
+                        data = f.read()
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/xml')
+                    self.end_headers()
+                    self.wfile.write(data)
+                elif path[-1] == 'arik':
+                    self.send_response(200)
+                    self.send_header('Content-type', 'plain/text')
+                    self.end_headers()
+                    self.wfile.write('automotive!'.encode('utf-8'))
+            else:
+                self.send_response(400)
+        else:
+            response = self.forwardGet()
+            self.send_response(response.status_code)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps(response).encode('utf-8'))
-        elif endpoint == 'results':
-            response = {}
-            self.send_response(200)
-            self.send_header('Content-type', 'application/xml')
-            self.end_headers()
-            self.wfile.write(json.dumps(response).encode('utf-8'))
-        elif endpoint == 'testing-farm':
-            if path[-1] == 'results.xml':
-                self.send_response(200)
-                self.send_header('Content-type', 'application/xml')
-                self.end_headers()
-                out = results.format(run_id)
-                self.wfile.write(out.encode('utf-8'))
-            elif path[-1] == 'results-junit.xml':
-                with open(f"/results/{run_id}/junit.xml", 'rb') as f:
-                    data = f.read()
-                self.send_response(200)
-                self.send_header('Content-type', 'application/xml')
-                self.end_headers()
-                self.wfile.write(data)
-            elif path[-1] == 'arik':
-                self.send_response(200)
-                self.send_header('Content-type', 'plain/text')
-                self.end_headers()
-                self.wfile.write('automotive!'.encode('utf-8'))
-        else:
-            self.send_response(400)
+            self.wfile.write(response.content)
 
 
     def do_POST(self):
@@ -139,14 +136,21 @@ class CustomHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(e.message.encode('utf-8'))
         else:
-            logging.info("forwarding")
-            url = f"{TF_API_URL}{self.path}"
-            logging.info(url)
-            response = requests.post(url, data=post_data, headers=self.headers)
+            response = self.forwardPost(post_data)
             self.send_response(response.status_code)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(response.content)
+
+    def forwardGet(self):
+        url = f"{TF_API_URL}{self.path}"
+        logging.info(f"forwarding a GET request to {url}")
+        return requests.get(url)
+
+    def forwardPost(self, post_data):
+        url = f"{TF_API_URL}{self.path}"
+        logging.info(f"forwarding a POST request to {url}")
+        return requests.post(url, data=post_data, headers=self.headers)
 
     def handleRequest(self, data):
         logging.info('handling request')
