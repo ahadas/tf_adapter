@@ -63,6 +63,7 @@ spec:
           image: quay.io/ahadas/tf_artifacts:latest
           ports:
             - containerPort: 8090 # rsync
+            - containerPort: 8080 # http server
           volumeMounts:
             - name: tmt-results
               mountPath: /srv/results
@@ -93,6 +94,9 @@ metadata:
   name: artifacts
 spec:
   ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8080
   - port: 873
     protocol: TCP
     targetPort: 8090
