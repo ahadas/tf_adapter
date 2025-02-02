@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-console
+  labels:
+    app: test-console
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-console
+  template:
+    metadata:
+      labels:
+        app: test-console
+    spec:
+      containers:
+        - name: test-console
+          image: quay.io/ahadas/test-console:latest
+          ports:
+            - containerPort: 8000
+          securityContext:
+            privileged: true
