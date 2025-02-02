@@ -1,3 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: tc-db
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -28,3 +39,10 @@ spec:
               value: http://tf-adapter.demo.svc.cluster.local:8080/v0.1/testing-farm
             - name: TF_RSYNC_ARTIFACTS_URL
               value: rsync://tf-artifacts.demo.svc.cluster.local:8090/artifacts
+          volumeMounts:
+            - name: tc-db
+              mountPath: /var/lib/test-console
+      volumes:
+        - name: tc-db
+          persistentVolumeClaim:
+            claimName: tc-db
