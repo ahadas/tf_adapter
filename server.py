@@ -20,7 +20,6 @@ results = '''<?xml version="1.0" encoding="UTF-8"?>
   </properties>
   <testsuite name="/kernel-automotive/plans/sst_filesystems/procfs/plan" result="passed" tests="14" stage="complete">
    <logs>
-    <log href="https:/artifacts.osci.redhat.com/{0}/arik" name="test log"/>
     <log href="https://artifacts.osci.redhat.com/{0}" name="workdir"/>
    </logs>
   </testsuite>
@@ -39,44 +38,34 @@ class CustomHandler(BaseHTTPRequestHandler):
         run_id = path[3] if len(path) > 3 else None
         if run_id in runs:
             endpoint = path[2]
-            if endpoint == 'requests':
-                response = {}
-                response['state'], result = get_state_and_result(run_id)
-                response['result'] = {'overall': result}
-                response['environments_requested'] = []
-                response['id'] = run_id
-                response['run'] = { 'artifacts': []}
-                self.send_response(200)
-                self.send_header('Content-type', 'application/json')
-                self.end_headers()
-                self.wfile.write(json.dumps(response).encode('utf-8'))
-            elif endpoint == 'results':
-                response = {}
-                self.send_response(200)
-                self.send_header('Content-type', 'application/xml')
-                self.end_headers()
-                self.wfile.write(json.dumps(response).encode('utf-8'))
-            elif endpoint == 'testing-farm':
-                if path[-1] == 'results.xml':
+            match endpoint:
+                case 'requests':
+                    response = self.handle_get_request(run_id)
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(response).encode('utf-8'))
+                case 'results':
                     self.send_response(200)
                     self.send_header('Content-type', 'application/xml')
                     self.end_headers()
-                    out = results.format(run_id)
-                    self.wfile.write(out.encode('utf-8'))
-                elif path[-1] == 'results-junit.xml':
-                    with open(f"/results/{run_id}/junit.xml", 'rb') as f:
-                        data = f.read()
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/xml')
-                    self.end_headers()
-                    self.wfile.write(data)
-                elif path[-1] == 'arik':
-                    self.send_response(200)
-                    self.send_header('Content-type', 'plain/text')
-                    self.end_headers()
-                    self.wfile.write('automotive!'.encode('utf-8'))
-            else:
-                self.send_response(400)
+                    self.wfile.write(json.dumps({}).encode('utf-8'))
+                case 'testing-farm':
+                    if path[-1] == 'results.xml':
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/xml')
+                        self.end_headers()
+                        out = results.format(run_id)
+                        self.wfile.write(out.encode('utf-8'))
+                    elif path[-1] == 'results-junit.xml':
+                        with open(f"/results/{run_id}/junit.xml", 'rb') as f:
+                            data = f.read()
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/xml')
+                        self.end_headers()
+                        self.wfile.write(data)
+                case _:
+                    self.send_response(400)
         else:
             response = self.forward_get()
             self.send_response(response.status_code)
@@ -97,7 +86,7 @@ class CustomHandler(BaseHTTPRequestHandler):
 
         if self.path.split("/")[-1] == 'requests' and not 'hardware' in data['environments'][0]:
             try:
-                response = self.handle_request(data)
+                response = self.handle_post_request(data)
                 self.send_response(200)
                 self.send_header('Content-type', 'application/json')
                 self.end_headers()
@@ -124,7 +113,16 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info(f"forwarding a POST request to {url}")
         return requests.post(url, data=post_data, headers=self.headers)
 
-    def handle_request(self, data):
+    def handle_get_request(self, run_id):
+        response = {}
+        response['state'], result = get_state_and_result(run_id)
+        response['result'] = {'overall': result}
+        response['environments_requested'] = []
+        response['id'] = run_id
+        response['run'] = {'artifacts': []}
+        return response
+
+    def handle_post_request(self, data):
         logging.info('handling request')
 
         run_id = uuid.uuid4()
