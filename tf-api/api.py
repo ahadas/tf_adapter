@@ -129,6 +129,8 @@ class CustomHandler(BaseHTTPRequestHandler):
         if 'test_name' in data['test']['fmf'].keys():
             pipelinerun['spec']['params'].append({'name': 'test-name', 'value': data['test']['fmf']['test_name']})
         '''
+        if 'tmt_image' in data['test'].keys(): # placement in data might change
+            pipelinerun['spec']['params'].append({'name': 'tmt-image', 'value': data['test']['tmt_image']})
         
         #output = yaml.dump(pipelinerun, sort_keys=False)
         #logging.info(output)
