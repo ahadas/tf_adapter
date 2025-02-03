@@ -4,20 +4,9 @@ import logging
 import uuid
 import requests
 import os
+import xml.etree.ElementTree as ET
 
 TF_RESULTS_URL = os.environ.get("TF_RESULTS_URL")
-
-results = '''<?xml version="1.0" encoding="UTF-8"?>
- <testsuites overall-result="passed">
-  <properties>
-   <property name="baseosci.overall-result" value="passed"/>
-  </properties>
-  <testsuite name="/kernel-automotive/plans/sst_filesystems/procfs/plan" result="passed" tests="14" stage="complete">
-   <logs>
-    <log href="https://artifacts.osci.redhat.com/{0}" name="workdir"/>
-   </logs>
-  </testsuite>
- </testsuites>'''
 
 class CustomHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -28,11 +17,11 @@ class CustomHandler(BaseHTTPRequestHandler):
         if os.path.isdir(workdir):
             match path[2]:
                 case 'results.xml':
+                    results = handle_get_results(workdir, run_id)
                     self.send_response(200)
                     self.send_header('Content-type', 'application/xml')
                     self.end_headers()
-                    out = results.format(run_id)
-                    self.wfile.write(out.encode('utf-8'))
+                    self.wfile.write(results)
                 case 'results-junit.xml':
                     with open(f"{workdir}/junit.xml", 'rb') as f:
                         data = f.read()
@@ -53,6 +42,41 @@ class CustomHandler(BaseHTTPRequestHandler):
         url = f"{TF_RESULTS_URL}{self.path}"
         logging.info(f"forwarding a GET request to {url}")
         return requests.get(url)
+
+def handle_get_results(workdir, run_id):
+    tree = ET.parse(f"{workdir}/junit.xml")
+    overall_result = 'passed'
+    root = tree.getroot()
+    suites = {}
+    for testsuite in root.findall(".//testsuite"):
+        errors = int(testsuite.get("errors"))
+        failures = int(testsuite.get("failures"))
+        suite_result = 'passed' if errors + failures == 0 else 'failed'
+        overall_result = 'failed' if suite_result == 'failed' else overall_result
+        suites[testsuite.get("name")] = {
+            'result': suite_result,
+            'tests': testsuite.get("tests"),
+            'stage': 'complete',
+        }
+    suites = ET.Element("testsuites")
+    suites.set('overall-result', overall_result)
+    properties = ET.SubElement(suites, "properties")
+    property = ET.SubElement(properties, "property")
+    property.set("name", "baseosci.overall-result")
+    property.set("value", overall_result)
+    for name, attributes in suites.items():
+        item = ET.SubElement(root, "testsuite")
+        item.set('name', name)
+        item.set('result', attributes['result'])
+        item.set('tests', attributes['tests'])
+        item.set('stage', attributes['stage'])
+        logs = ET.SubElement(item, "logs")
+        log = ET.SubElement(logs, "log")
+        log.set('name', 'workdir')
+        log.set('href', f"https://artifacts.osci.redhat.com/{run_id}") # TODO: fix
+    xml = ET.tostring(ET.tostring(suites, encoding='utf-8'))
+    logging.info('result: ' + xml.decode('utf-8'))
+    return xml
 
 def run(server_class=HTTPServer, handler_class=CustomHandler, port=8080):
     server_address = ('', port)
