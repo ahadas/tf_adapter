@@ -11,7 +11,7 @@ TF_RESULTS_URL = os.environ.get("TF_RESULTS_URL")
 class CustomHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         logging.info(f"received a GET request ({self.path})")
-        path = self.path.split("/")
+        path = self.path.replace("//","/").split("/")
         run_id = path[1] if len(path) > 2 else None
         workdir = f"/srv/results/{run_id}"
         if os.path.isdir(workdir):
