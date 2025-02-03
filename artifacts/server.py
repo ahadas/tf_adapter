@@ -73,7 +73,7 @@ def handle_get_results(workdir, run_id):
         logs = ET.SubElement(item, "logs")
         log = ET.SubElement(logs, "log")
         log.set('name', 'workdir')
-        log.set('href', f"https://artifacts.osci.redhat.com/{run_id}{name}")
+        log.set('href', f"https://artifacts.osci.redhat.com/{run_id}/artifacts{name}")
     xml = ET.tostring(testsuites, encoding='utf-8')
     logging.info('result: ' + xml.decode('utf-8'))
     return xml
