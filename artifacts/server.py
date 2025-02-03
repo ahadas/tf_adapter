@@ -58,14 +58,14 @@ def handle_get_results(workdir, run_id):
             'tests': testsuite.get("tests"),
             'stage': 'complete',
         }
-    suites = ET.Element("testsuites")
-    suites.set('overall-result', overall_result)
-    properties = ET.SubElement(suites, "properties")
+    testsuites = ET.Element("testsuites")
+    testsuites.set('overall-result', overall_result)
+    properties = ET.SubElement(testsuites, "properties")
     property = ET.SubElement(properties, "property")
     property.set("name", "baseosci.overall-result")
     property.set("value", overall_result)
     for name, attributes in suites.items():
-        item = ET.SubElement(root, "testsuite")
+        item = ET.SubElement(testsuites, "testsuite")
         item.set('name', name)
         item.set('result', attributes['result'])
         item.set('tests', attributes['tests'])
