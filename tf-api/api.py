@@ -104,15 +104,18 @@ class CustomHandler(BaseHTTPRequestHandler):
             'apiVersion': 'tekton.dev/v1',
             'kind': 'PipelineRun',
             'metadata': {'name':run_name, 'namespace': POD_NAMESPACE},
-            'spec': {'params': [
-                {'name': 'plan-name', 'value': '^/plans/one'},
-                {'name': 'test-name', 'value': 'one'},
-                {'name': 'hw-target', 'value': data['environments'][0]['variables']['HW_TARGET']},
-                {'name': 'testRunId', 'value': run_id},
-                {'name': 'testsRepo', 'value': git_url},
-                {'name': 'board', 'value': 'rcar-29'},
-                {'name': 'skipProvisioning', 'value': 'true'},
-                {'name': 'clientName', 'value': 'demo'},
+            'spec': {
+                'params': [
+                    {'name': 'plan-name', 'value': '^/plans/' + data['test']['fmf']['name']},
+                    {'name': 'test-name', 'value': data['test']['fmf']['name']},
+                    {'name': 'hw-target', 'value': data['environments'][0]['arch']},
+                    {'name': 'testRunId', 'value': run_id},
+                    {'name': 'testsRepo', 'value': git_url},
+                    #{'name': 'board', 'value': data['environments'][0]['variables'].get('HW_TARGET', '')},
+                    {'name:' 'board', 'value:' 'rcar-29'},
+                    {'name': 'skipProvisioning', 'value': 'true'}, #TODO 
+                    {'name': 'clientName', 'value': 'client-' + run_id},
+                    {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')}
                 ],
                 'pipelineRef': {'name': 'rcar-s4-test-pipeline'},
                 'taskRunTemplate': {'serviceAccountName': 'pipeline'},
@@ -120,9 +123,10 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'jumpstarter-client-secret', 'secret': {'secretName': 'demo-config'}},
                     {'name': 'test-results', 'persistentVolumeClaim': {'claimName': 'tmt-results'}},
                 ],
+                'ctx': dict(data['environments'][0]['tmt']['context']),
+                'env': dict(data['environments'][0]['tmt']['environment'])
             },
         }
-
         '''
         if 'name' in data['test']['fmf'].keys():
             pipelinerun['spec']['params'].append({'name': 'plan-name', 'value': data['test']['fmf']['name']})
