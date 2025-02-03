@@ -56,7 +56,7 @@ def handle_get_results(workdir, run_id):
         suites[testsuite.get("name")] = {
             'result': suite_result,
             'tests': testsuite.get("tests"),
-            'stage': 'complete',
+            'stage': 'complete', # TODO: fix
         }
     testsuites = ET.Element("testsuites")
     testsuites.set('overall-result', overall_result)
@@ -73,7 +73,7 @@ def handle_get_results(workdir, run_id):
         logs = ET.SubElement(item, "logs")
         log = ET.SubElement(logs, "log")
         log.set('name', 'workdir')
-        log.set('href', f"https://artifacts.osci.redhat.com/{run_id}") # TODO: fix
+        log.set('href', f"https://artifacts.osci.redhat.com/{run_id}{name}")
     xml = ET.tostring(testsuites, encoding='utf-8')
     logging.info('result: ' + xml.decode('utf-8'))
     return xml
