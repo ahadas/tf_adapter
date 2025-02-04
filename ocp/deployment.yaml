@@ -9,6 +9,36 @@ spec:
     requests:
       storage: 10Gi
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tf-api
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tf-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tf-api
+subjects:
+- kind: ServiceAccount
+  name: tf-api
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tf-api
+rules:
+- apiGroups:
+    - tekton.dev
+  resources:
+    - pipelineruns
+  verbs:
+    - create
+    - get
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,7 +67,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-      serviceAccountName: pipeline
+      serviceAccountName: tf-api
 ---
 apiVersion: apps/v1
 kind: Deployment
