@@ -135,7 +135,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         '''
         tmt_image = os.environ.get("TMT_IMAGE")
         if tmt_image:
-            pipelinerun['spec']['params'].append({'name': 'tmt-image', 'value': data['test']['tmt_image']})
+            pipelinerun['spec']['params'].append({'name': 'tmt-image', 'value': tmt_image})
         
         #output = yaml.dump(pipelinerun, sort_keys=False)
         #logging.info(output)
