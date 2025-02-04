@@ -34,7 +34,7 @@ spec:
             privileged: true
           env:
             - name: TESTING_FARM_API_URL
-              value: http://tf-api.demo.svc.cluster.local
+              value: http://tf-api-demo.apps.zmeya.rh-internal.ocm
             - name: TF_RESULTS_URL
               value: http://artifacts-demo.apps.zmeya.rh-internal.ocm
             - name: TF_RSYNC_ARTIFACTS_URL
