@@ -55,7 +55,9 @@ class CustomHandler(BaseHTTPRequestHandler):
         #pretty_data = json.dumps(data, indent=4)
         #logging.info(pretty_data)
 
-        if self.path.split("/")[-1] == 'requests' and not 'hardware' in data['environments'][0]:
+        if (self.path.split("/")[-1] == 'requests' and
+                (data['environments'][0]['variables'].get('HW_TARGET', 'VM') != 'VM'
+                 or not 'hardware' in data['environments'][0])):
             try:
                 response = self.handle_post_request(data)
                 self.send_response(200)
