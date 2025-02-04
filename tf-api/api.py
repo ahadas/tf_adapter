@@ -116,6 +116,8 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'skipProvisioning', 'value': 'true'}, #TODO 
                     {'name': 'clientName', 'value': f"tc-{run_id}"},
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')}
+                    {'name': 'ctx', 'value': dict(data['environments'][0]['tmt']['context'])},
+                    {'name': 'env', 'value': dict(data['environments'][0]['tmt']['environment'])},
                 ],
                 'pipelineRef': {'name': 'rcar-s4-test-pipeline'},
                 'taskRunTemplate': {'serviceAccountName': 'pipeline'},
@@ -123,8 +125,6 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'jumpstarter-client-secret', 'secret': {'secretName': 'demo-config'}},
                     {'name': 'test-results', 'persistentVolumeClaim': {'claimName': 'tmt-results'}},
                 ],
-                'ctx': dict(data['environments'][0]['tmt']['context']),
-                'env': dict(data['environments'][0]['tmt']['environment'])
             },
         }
         '''
