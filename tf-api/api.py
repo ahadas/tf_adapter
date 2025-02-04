@@ -102,6 +102,9 @@ class CustomHandler(BaseHTTPRequestHandler):
         run_name = get_run_name(run_id)
 
         git_url = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_URL', data['test']['fmf']['url'])
+        test_branch =  data['environments'][0]['variables'].get('CUSTOM_DISCOVER_BRANCH', 'main')
+        test_name = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_TESTS', data['test']['fmf'].get('test_name', ''))
+
         board = os.environ.get('BOARD')
         if not board:
             board = data['environments'][0]['variables'].get('HW_TARGET', '')
@@ -113,13 +116,16 @@ class CustomHandler(BaseHTTPRequestHandler):
             'spec': {
                 'params': [
                     {'name': 'plan-name', 'value': '^/plans/' + data['test']['fmf']['name']},
-                    {'name': 'test-name', 'value': data['test']['fmf']['name']},
+                    {'name': 'test-name', 'value': test_name},
                     {'name': 'hw-target', 'value': data['environments'][0]['arch']},
                     {'name': 'testRunId', 'value': run_id},
                     {'name': 'testsRepo', 'value': git_url},
                     {'name': 'board', 'value': board},
+                    {'name': 'testBrunch', 'value': test_branch},
+                    #{'name': 'board', 'value': data['environments'][0]['variables'].get('HW_TARGET', '')},
+                    {'name': 'board', 'value': 'rcar-29'},
                     {'name': 'skipProvisioning', 'value': 'true'}, #TODO 
-                    {'name': 'clientName', 'value': 'demo'}, #TODO
+                    {'name': 'clientName', 'value': data['settings']['pipeline'].get('client', 'demo')}, 
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
                     {'name': 'ctx', 'value': dict(data['environments'][0]['tmt']['context'])},
                     {'name': 'env', 'value': dict(data['environments'][0]['tmt']['environment'])},
