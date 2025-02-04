@@ -1,9 +1,11 @@
+import datetime
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 import logging
 import uuid
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
+from tinydb import TinyDB, Query
 import requests
 import os
 
@@ -11,7 +13,7 @@ config.load_incluster_config()
 
 TF_API_URL = os.environ.get("TF_API_URL")
 POD_NAMESPACE = os.environ.get("POD_NAMESPACE")
-runs = {}
+DB_PATH = "/srv/db/db.json"
 
 class CustomError(Exception):
     def __init__(self, message, code):
@@ -24,7 +26,8 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info("received a GET request")
         path = self.path.split("/")
         run_id = path[3] if len(path) > 3 else None
-        if run_id in runs:
+        run = get_run(run_id)
+        if run:
             endpoint = path[2]
             match endpoint:
                 case 'requests':
@@ -44,7 +47,6 @@ class CustomHandler(BaseHTTPRequestHandler):
 
 
     def do_POST(self):
-        global runs
         logging.info("received a POST request")
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
@@ -96,8 +98,7 @@ class CustomHandler(BaseHTTPRequestHandler):
 
         run_id = str(uuid.uuid4())
         run_name = get_run_name(run_id)
-        global runs
-        runs[run_id] = f"{POD_NAMESPACE}/{run_name}"
+
         git_url = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_URL', data['test']['fmf']['url'])
 
         pipelinerun = {
@@ -149,6 +150,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             body=pipelinerun,
         )
         logging.info(response)
+        save_run(run_id)
 
         # Adding the run UUID to follow the request
         pipelinerun['id'] = run_id
@@ -191,6 +193,27 @@ def get_state_and_result(run_id):
                     return 'complete', 'failed'
     except:
         return 'new', 'unknown'
+
+def get_db():
+    return TinyDB(DB_PATH)
+
+def save_run(run_id):
+    db = get_db()
+    with db:
+        last_id = len(db)
+        db.insert(
+            {'id': last_id+1,
+             'run_id': run_id,
+             'run_namespace': POD_NAMESPACE,
+             'run_name': get_run_name(run_id),
+             'time': datetime.datetime.now().isoformat()
+            })
+
+def get_run(run_id):
+    db = get_db()
+    with db:
+        run = Query()
+        return db.get(run.run_id == run_id)
 
 def run(server_class=HTTPServer, handler_class=CustomHandler, port=8080):
     server_address = ('', port)
