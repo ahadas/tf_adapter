@@ -74,6 +74,8 @@ spec:
           env:
             - name: TF_API_URL
               value: https://api.dev.testing-farm.io
+            - name: BOARD
+              value: rcar-29
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

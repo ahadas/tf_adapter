@@ -100,6 +100,9 @@ class CustomHandler(BaseHTTPRequestHandler):
         run_name = get_run_name(run_id)
 
         git_url = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_URL', data['test']['fmf']['url'])
+        board = os.environ.get('BOARD')
+        if not board:
+            board = data['environments'][0]['variables'].get('HW_TARGET', '')
 
         pipelinerun = {
             'apiVersion': 'tekton.dev/v1',
@@ -112,8 +115,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'hw-target', 'value': data['environments'][0]['arch']},
                     {'name': 'testRunId', 'value': run_id},
                     {'name': 'testsRepo', 'value': git_url},
-                    #{'name': 'board', 'value': data['environments'][0]['variables'].get('HW_TARGET', '')},
-                    {'name': 'board', 'value': 'rcar-29'},
+                    {'name': 'board', 'value': board},
                     {'name': 'skipProvisioning', 'value': 'true'}, #TODO 
                     {'name': 'clientName', 'value': 'demo'}, #TODO
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
