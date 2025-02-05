@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Testing Farm Result</title>
+  <meta charset="utf-8">
+
+  <style>
+    header {
+        display: flex;
+        align-items: center;
+        gap: 2ex;
+    }
+    .stretch { flex: auto; }
+    #config {
+        padding: 1em 0.5em;
+        border: lightgray;
+        border-width: 1px;
+        border-style: solid;
+        box-shadow: 2px 2px 2px lightgrey;
+    }
+
+    details {
+      padding: 1ex;
+      margin: 3ex;
+      background-color: #F2F2F2;
+      box-shadow: 2px 2px 2px lightgrey;
+    }
+    details > summary {
+        padding: 1.5em;
+        font-family: monospace;
+    }
+    monospace {
+        font-family: monospace;
+        font-size: 11px;
+    }
+    details > summary > p {
+        margin-bottom: 0;
+        font-weight: bold;
+    }
+
+    /* nested details are testcases in a testsuite */
+    details details { background-color: white; }
+    details details > summary { padding: 0.5em; }
+    /* nested details in testcases are checks */
+    details details details { background-color: #F2F2F2; }
+    details details details > summary { padding: 0.1em; }
+    details details details details { background-color: white; }
+
+    .result-pass { background-color: lightgreen; font-size: 12px; }
+    .result-fail { background-color: #ff4d4d; font-size: 12px; }
+    .result-info { background-color: lightblue; font-size: 12px; }
+    .result-skip { background-color: lightgrey; font-size: 12px; }
+    .result-error { background-color: darkorange; font-size: 12px; }
+    .result-running { background-color: paleturquoise; font-size: 12px; }
+    .footer { color:#929292; }
+
+    iframe.html-artifact { height: 80vh; }
+  </style>
+</head>
+
+<body>
+  <header>
+    <img src="https://gitlab.com/uploads/-/system/group/avatar/5515434/tft-logo.png"
+        width="64" height="64" alt="Testing Farm Logo"/>
+    <h1 id="overall-result"></h1>
+    <div id="config" hidden>
+        <input id="show_passed" type="checkbox" />
+        <label for="show_passed">Show passed tests</label>
+    </div>
+    <div class="stretch"></div>
+    <a id="docs" hidden>Docs</a>
+    <span id="docs-separator" hidden>|</span>
+    <a id="api-request" hidden>API request</a>
+    <span id="api-request-separator" hidden>|</span>
+    <a id="pipeline-log">Pipeline log</a>
+    <span id="pipeline-log-separator">|</span>
+    <a href="https://gitlab.com/testing-farm/oculus/-/issues">Issues for this page</a>
+    <span id="download-junit-separator" hidden>|</span>
+    <a id="download-junit" download hidden>Download JUnit</a>
+  </header>
+
+  <main id="main"></main>
+
+  <footer><hr><div class="footer">Rendered from: <a id="results-xml-src"></a></div></footer>
+</body>
+
+<script type="module">
+import {
+    LitElement, html, unsafeHTML, css, render, nothing
+} from 'https://cdn.jsdelivr.net/gh/lit/dist@2/all/lit-all.min.js';
+import { AnsiUp } from 'https://cdn.jsdelivr.net/npm/ansi_up@6.0.2/ansi_up.js';
+
+const ansiUp = new AnsiUp();
+
+const SHOW_ATTR = '_show'; /* marks logs which are shown inline */
+const HTML_ATTR = '_html'; /* marks HTML artifacts which are shown inline */
+
+const isPassed = result => result.includes('pass');
+
+// If number of testcases is bigger then the value, both testsuites and
+// testcases will be collapsed.
+const tooManyTestcases = 2;
+
+// HACK: the request API url should be read from some metadata file instead
+const apiUrl = 'https://api.testing-farm.io/v0.1/requests';
+
+const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
+
+// allow user to point to a different result URL, mostly for testing
+const baseUrl = new URLSearchParams(window.location.search).get('url') ?? '.';
+
+// pipeline log, the main log of the worker
+const pipelineLogUrl = `${baseUrl}/pipeline.log`;
+
+// link to the user docs
+const docsUrl = 'https://docs.testing-farm.io/Testing%20Farm/0.1/index.html';
+
+// HACK: Until TFT-1687 is implemented.
+// unify the variations of "pass", "passed", "failed", "failure", etc. to the defined .result-.. classes
+function normalizeResult (result, isPipelineRunning) {
+    if (!result) {
+        return 'error';
+    }
+    const lower = result.toLowerCase();
+    if (lower.includes('pass')) { return 'pass' }
+    if (lower.includes('fail') || lower.includes('inspection')) { return 'fail' }
+    if (lower.includes('skip') || lower.includes('not_applicable')) { return 'skip' }
+    if (lower.includes('info')) { return 'info' }
+    if (lower.includes('undefined') && isPipelineRunning) { return 'running' }
+    // treat other values like "error", "undefined", unknown as generic error
+    return 'error';
+}
+
+function stagePlaceholder (stage) {
+    switch (stage) {
+    case 'created':
+    case 'ready':
+        return 'Preparing to run';
+    case 'guest_provisioning':
+        return 'Provisioning in progress';
+    case 'guest_provisioned':
+    case 'guest_setup':
+        return 'Test environment setup is in progress';
+    case 'prepared':
+    case 'running':
+        return 'Tests are being executed';
+    default:
+        return 'Loading...';
+    }
+}
+
+async function fetchFile (url, options) {
+    try {
+        const response = await fetch(url, options);
+        if (response.ok) {
+            return await response.text();
+        } else {
+            console.warn('Failed to fetch', url, ':', response.status, response.statusText);
+        }
+    } catch (error) {
+        console.warn('Failed to fetch', url, ':', error);
+    }
+}
+
+async function fetchHeader (url) {
+    try {
+        const response = await fetch(url, { method: 'HEAD' });
+        if (response.ok) { return true }
+    } catch (error) {
+        console.warn('Failed to fetch header', url, ':', error);
+    }
+    return false;
+}
+
+async function fetchJSON (url) {
+    try {
+        const response = await fetch(url);
+        if (response.ok) {
+            return await response.json();
+        } else {
+            console.warn('Failed to fetch', url, ':', response.status, response.statusText);
+        }
+    } catch (error) {
+        console.warn('Failed to fetch', url, ':', error);
+    }
+}
+
+async function fetchXML (url) {
+    const raw = await fetchFile(url);
+    if (raw) { return new DOMParser().parseFromString(raw, 'text/xml') }
+}
+
+// custom component: dynamically load a log file/directory and show it inline
+class LogViewer extends LitElement {
+    static properties = {
+        url: { type: String },
+        placeholder: { type: String },
+        _contents: { type: String, state: true }
+    };
+
+    updated (changedProperties) {
+        if (changedProperties.has('url')) {
+            fetchFile(this.url).then(text => {
+                if (text) {
+                    // is this a directory index? if so, load all of its *.txt files and concatenate
+                    if (text.includes('<title>Index of ')) {
+                        const indexDoc = new DOMParser().parseFromString(text, 'text/html');
+                        const fetches = [];
+                        indexDoc.querySelectorAll('a[href*=".txt"]').forEach(link =>
+                            fetches.push(fetchFile(this.url + '/' + link.getAttribute('href'))));
+                        Promise.all(fetches).then(texts => { this._contents = texts.join('\n\n') });
+                    } else {
+                        // plain file
+                        this._contents = text;
+                    }
+                } else {
+                    // file doesn't exist or has no text
+                    this._contents = null;
+                }
+            });
+        }
+    }
+
+    render () {
+        if (this._contents === null) {
+            return html`<pre class="log-viewer">${this.placeholder}</pre>`;
+        } else {
+            return html`<pre class="log-viewer">${unsafeHTML(
+                ansiUp.ansi_to_html(this._contents)) ?? 'Loading...'}</pre>`;
+        }
+    }
+
+    static styles = css`
+        pre {
+            background-color: #E0E0E0;
+            padding: 0.5em;
+            overflow: auto;
+            max-height: 70em;
+        }`;
+}
+
+customElements.define('log-viewer', LogViewer);
+
+function renderLogs (logElements, artifactsAnchor, stage) {
+    const logLinks = [];
+    const inlineLogs = [];
+    logElements.forEach(log => {
+        let name = log.getAttribute('name');
+        const href = log.getAttribute('href');
+        if (!name) { name = href }
+        const placeholder = stagePlaceholder(stage);
+        // HACK: results.xml should have unique names; fix that, and then clean this up
+        const setupStage = log.getAttribute('guest-setup-stage');
+        if (setupStage && name === 'guest setup') { name = setupStage }
+        if (log.hasAttribute(SHOW_ATTR)) {
+            inlineLogs.push(html`<h3><a href=${href}>${name}</a></h3>
+                                 <log-viewer placeholder=${placeholder} url=${href} />`);
+        } else if (log.hasAttribute(HTML_ATTR)) {
+            inlineLogs.push(html`<h3><a href=${href}>${name}</a></h3>
+                                 <iframe class="html-artifact" title=${name} src=${href} width="100%" />`);
+        } else {
+            logLinks.push(html`<li><a href=${href}>${name}</a></li>`);
+        }
+    });
+
+    // no logs means an infrastructure problem, provide some hints how to handle the situation
+    if (logElements.length === 0) {
+        return [
+            html`<p>Tests failed to run. See <a href=${pipelineLogUrl}></a> for details.</p>`,
+            html`
+                <p>This can be an infrastructure problem, check
+                <a href=https://status.testing-farm.io>status page</a>
+                for known outages.</p>
+            `,
+            html`
+                <p><a href="https://gitlab.com/testing-farm/general/-/issues">File an issue</a>
+                if you think you hit a bug.</p>
+            `
+        ];
+    }
+
+    return html`<div id=${artifactsAnchor ?? nothing}>
+        ${inlineLogs}
+        ${logLinks.length > 0 ? html`<h3>Log links</h3><ul>${logLinks}</ul>` : null}
+    </div>`;
+}
+
+function renderCheckSummary (checks) {
+    const checkCount = checks.getAttribute('checks');
+    const failCount = checks.getAttribute('failures');
+    const errorCount = checks.getAttribute('errors');
+    const passCount = checkCount - failCount - errorCount;
+    return `${checkCount} checks (${passCount} passed, ${failCount} failed, ${errorCount} error)`;
+}
+
+function renderCheckList (checks, artifactsAnchor) {
+    if (!checks) { return [] }
+    const checksStr = [];
+    const failCount = parseInt(checks.getAttribute('failures'));
+    const errorCount = parseInt(checks.getAttribute('errors'));
+    const result = failCount + errorCount === 0 ? 'pass' : (errorCount > 0 ? 'error' : 'fail');
+    const checkObjects = checks.querySelectorAll('check');
+
+    checkObjects.forEach(check => {
+        const checkName = check.getAttribute('name');
+        const checkResult = check.getAttribute('result');
+        const checkEvent = check.getAttribute('event');
+
+        checksStr.push(
+            html`<details><summary class="result-${checkResult}">${checkName} (${checkEvent})</summary>
+                ${renderLogs(check.querySelectorAll('logs > log'), artifactsAnchor)}
+                </details>`
+        );
+    });
+    if (checksStr.length > 0) {
+        return html`<h3>Checks</h3>
+        <details ?open=${result !== 'pass'}>
+            <summary class="result-${result}">
+                ${renderCheckSummary(checks)}
+            </summary>
+            ${checksStr}
+        </details>`;
+    }
+    return html``;
+}
+
+// testsuites contain a list of testsuite, which contain a list of testcase; these have
+// exactly the same structure, so we can render them with just one function
+function renderTestList (doc, elementType, subElementType, showPassed, errorReason, isPipelineRunning) {
+    const res = [];
+    const items = doc.querySelectorAll(elementType);
+    items.forEach(item => {
+        const name = item.getAttribute('name');
+        let arch = null;
+        let compose = null;
+        let guestName = null;
+        let guestRole = null;
+        let isOpen = true;
+        const result = normalizeResult(item.getAttribute('result'), isPipelineRunning);
+        const note = item.getAttribute('note');
+        const guestsStr = [];
+        let guestInfo = null; // displayed for testcases run in multihost pipelines
+        let checks = null;
+        if (!showPassed && isPassed(result)) { return }
+
+        // render artifacts anchors for top-level plans, as they can be quite far away
+        const artifactsAnchor = subElementType ? 'artifacts-' + name : undefined;
+
+        if (elementType === 'testsuite') {
+            const guests = item.querySelectorAll('testsuite > guest');
+
+            if (guests.length > 0) { // Multihost pipeline, testing environment is under <guest> elements
+                guests.forEach(guest => {
+                    const environment = guest.querySelector('testing-environment[name=provisioned]');
+                    if (environment != null) {
+                        arch = environment.querySelector('property[name=arch]')?.getAttribute('value') ?? arch;
+                        compose = environment.querySelector('property[name=compose]')?.getAttribute('value') ?? compose;
+                        guestName = guest?.getAttribute('name');
+                        guestRole = guest?.getAttribute('role');
+                    }
+                    guestsStr.push(`${guestName}${guestRole ? ` (${guestRole})` : ''}: ${arch ? `💻 ${arch}` : ''}` +
+                                   `${compose ? ` 💿 ${compose}` : ''}`);
+                });
+            } else { // Normal pipeline
+                const environment = item.querySelector('testing-environment[name=requested]');
+                if (environment != null) {
+                    arch = environment.querySelector('property[name=arch]')?.getAttribute('value') ?? arch;
+                    compose = environment.querySelector('property[name=compose]')?.getAttribute('value') ?? compose;
+                    guestsStr.push(`${arch ? ` 💻 ${arch}` : ''}${compose ? ` 💿 ${compose}` : ''}`);
+                }
+            }
+            isOpen = (result !== 'pass' || items.length === 1);
+        } else {
+            // As we show only show not passed tests by default, we need to count them and ignore passed
+            const failedTestsCount = Array.from(items).filter(i => !isPassed(i.getAttribute('result'))).length;
+            isOpen = (result !== 'pass' || items.length === 1) && failedTestsCount < tooManyTestcases;
+            guestName = item.querySelector('guest')?.getAttribute('name');
+            guestRole = item.querySelector('guest')?.getAttribute('role');
+            const serialNumber = item?.getAttribute('serial-number');
+            if (guestName) {
+                guestInfo = `test #${serialNumber} on ${guestName}${guestRole ? ` (${guestRole})` : ''}`;
+            }
+            checks = item.querySelector('checks');
+        }
+
+        const rightSideTexts = [];
+        const stage = item.getAttribute('stage');
+        if (guestInfo) { rightSideTexts.push(guestInfo) }
+        if (elementType === 'testsuite') { rightSideTexts.push(`${result}`) }
+        if (checks && checks.getAttribute('checks') > 0) { rightSideTexts.push(`with ${renderCheckSummary(checks)}`) }
+        if (item.getAttribute('time')) { rightSideTexts.push(`took ${item.getAttribute('time')} s`) }
+
+        res.push(html`
+          <details ?open=${isOpen}>
+            <summary class="result-${result}">
+                ${name}${note ? ` (${note})` : ''}
+                <monospace>
+                    <span style="float:right;"><strong>${rightSideTexts.join(', ')}</strong></span><br>
+                    ${guestsStr.map((guest) => html`${guest}<br>`)}
+                    ${result === 'error' && errorReason ? html`<p>⚠ ${errorReason}</p>` : null}
+                </monospace>
+            </summary>
+            ${artifactsAnchor ? html`<p><a href="#${artifactsAnchor}">Go to Logs and Artifacts</a></p>` : null}
+            ${subElementType ? renderTestList(item, subElementType, null, showPassed, null) : null}
+            ${renderLogs(item.querySelectorAll(':scope > logs > log'), artifactsAnchor, stage)}
+            ${renderCheckList(checks, artifactsAnchor)}
+          </details>`);
+    });
+    return res;
+}
+
+// policy functions which logs get rendered inline; this should be the most relevant ones to investigate failures
+
+function selectInlineTestcaseLogs (testcase) {
+    /* don't show successful test logs by default; matter of taste/overzealous fetching
+    if (isPassed(testcase.getAttribute('result'))
+        return;
+    */
+
+    let haveHtml = false;
+
+    testcase.querySelectorAll(':scope > logs > log').forEach(log => {
+        if (log.getAttribute('name').endsWith('.html')) {
+            log.setAttribute(HTML_ATTR, '');
+            haveHtml = true;
+        }
+    });
+
+    // if there is a custom HTML viewer, don't show anything else inline
+    if (haveHtml) {
+        return;
+    }
+
+    testcase.querySelectorAll(':scope > logs > log').forEach(log => {
+        const name = log.getAttribute('name');
+        if (name === 'testout.log' /* TMT test log */ ||
+            name.includes('-str_') /* STI test log */ ||
+            name === 'ansible-output.txt' /* STI failed artifact install */) { log.setAttribute(SHOW_ATTR, '') }
+    });
+}
+
+// always show TMT reproducer; if the setup failed, also show these logs
+function selectInlineTestsuiteLogs (testsuite, failedSetup, isPipelineRunning) {
+    if (!isPipelineRunning) {
+        testsuite.querySelectorAll(':scope > logs > log[name="tmt-reproducer"]')
+            .forEach(log => {
+                console.log('fetching', log.getAttribute('href'));
+                if (fetchFile(log.getAttribute('href'))) {
+                    log.setAttribute(SHOW_ATTR, '');
+                }
+            });
+    }
+    if (!failedSetup) { return }
+
+    const tmtVerboseLogs = testsuite.querySelectorAll(':scope > logs > log[name="tmt-verbose-log"]');
+    tmtVerboseLogs.forEach(log => log.setAttribute(SHOW_ATTR, ''));
+    if (tmtVerboseLogs.length > 0) { return }
+
+    const tmtLogs = testsuite.querySelectorAll(':scope > logs > log[name="tmt-log"]');
+    tmtLogs.forEach(log => log.setAttribute(SHOW_ATTR, ''));
+    if (tmtLogs.length > 0) { return }
+
+    // check for guest setup stages in reverse order, i.e. only show the most recent one
+    for (const priority of ['post_artifact_installation', 'artifact_installation', 'pre_artifact_installation']) {
+        const logs = testsuite.querySelectorAll(`:scope > logs > log[guest-setup-stage="${priority}"]`);
+        if (logs.length > 0) {
+            logs.forEach(log => log.setAttribute(SHOW_ATTR, ''));
+            break;
+        }
+    }
+}
+
+function selectInlineLogs (results, isPipelineRunning) {
+    results.querySelectorAll('testsuite').forEach(testsuite => {
+        const testcases = testsuite.querySelectorAll('testcase');
+        testcases.forEach(selectInlineTestcaseLogs);
+        selectInlineTestsuiteLogs(testsuite, testcases.length === 0, isPipelineRunning);
+    });
+}
+
+function renderTests (resultsXml, showPassed, apiRequest, isPipelineRunning) {
+    const errorReason = apiRequest?.result?.summary;
+    const items = resultsXml
+        ? renderTestList(
+            resultsXml, 'testsuite', 'testcase', showPassed, errorReason, isPipelineRunning)
+        : [];
+
+    // show pipeline log in case of errors
+    if (apiRequest.state === 'error' || items.length === 0) {
+        items.push(html`<details class="pipeline-log" open>
+        <summary class="result-error">
+            <a href="${pipelineLogUrl}"}>pipeline.log</a>
+            <monospace>
+                ${errorReason ? html`<p>⚠ ${errorReason}</p>` : null}
+            </monospace>
+        </summary>
+        <log-viewer url="${pipelineLogUrl}" />
+      </details>`);
+    }
+    render(items, document.getElementById('main'));
+}
+
+function reloadPage () {
+    // reload page only if a user scrolled to the bottom
+    if ((window.innerHeight + window.scrollY) >= document.body.offsetHeight) {
+        main();
+    } else {
+        window.setTimeout(() => reloadPage(), 5000);
+    }
+}
+
+async function main () {
+    // get request ID
+    const requestId = window.location.href.match(uuidRegex)?.[0];
+    let apiRequestUrl = null;
+
+    // defaulting to this request when real request cannot be fetched (e.g. when developing locally)
+    let apiRequest = { state: 'complete' };
+
+    // fetch the API request
+    if (requestId !== undefined) {
+        apiRequestUrl = apiUrl + `/${requestId}`;
+        apiRequest = await fetchJSON(apiRequestUrl);
+    }
+    const resultsXmlLink = baseUrl + '/results.xml';
+    document.getElementById('results-xml-src').setAttribute('href', resultsXmlLink);
+    document.getElementById('results-xml-src').textContent = resultsXmlLink;
+
+    // handle complete and error requests
+    if (apiRequest.state === 'complete' || apiRequest.state === 'error') {
+        // fetch results.xml
+        const resultsXml = await fetchXML(resultsXmlLink);
+        let overallResult = 'error'; // error when results.xml is not present (user facing error)
+
+        // results xunit available, valid results available (might still be an error)
+        if (resultsXml) {
+            selectInlineLogs(resultsXml, false);
+            overallResult = resultsXml.firstChild.getAttribute('overall-result');
+
+            /* keep config hidden if there are only passed or only failed tests */
+            if (!isPassed(overallResult) && resultsXml.querySelectorAll('testcase[result^="pass"]').length > 0) {
+                document.getElementById('config').removeAttribute('hidden');
+                document.getElementById('show_passed').addEventListener(
+                    'change', ev => renderTests(resultsXml, ev.target.checked, apiRequest));
+            }
+        }
+
+        document.getElementById('overall-result').innerHTML = overallResult;
+
+        renderTests(resultsXml, isPassed(overallResult), apiRequest);
+    } else if (apiRequest.state === 'running') {
+        // fetch results.xml
+        const resultsXml = await fetchXML(baseUrl + '/results.xml', { cache: 'no-store' });
+        document.getElementById('overall-result').innerHTML = 'in progress';
+
+        // results xunit available, valid results available (might still be an error)
+        if (resultsXml) {
+            selectInlineLogs(resultsXml, true);
+
+            renderTests(resultsXml, true, apiRequest, true);
+        } else {
+            const pipelineLog = await fetchFile(pipelineLogUrl, { cache: 'no-store' });
+            render(html`<pre>${unsafeHTML(ansiUp.ansi_to_html(pipelineLog))}</pre>`, document.getElementById('main'));
+
+            // reload in 5 seconds, what matches the pipeline.log refresh tick (5s)
+            window.setTimeout(() => reloadPage(), 5000);
+
+            // scroll to bottom of the page, if scrolled to the bottom
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+    } else if (apiRequest.state === 'queued') {
+        // set the result of the request to `in progress`
+        document.getElementById('overall-result').innerHTML = 'in progress';
+
+        // prevent caching the response of pipeline.log
+        const pipelineLog = await fetchFile(pipelineLogUrl, { cache: 'no-store' });
+        render(html`<pre>${unsafeHTML(ansiUp.ansi_to_html(pipelineLog))}</pre>`, document.getElementById('main'));
+
+        // reload in 5 seconds, what matches the pipeline.log refresh tick (5s)
+        window.setTimeout(() => reloadPage(), 5000);
+
+        // scroll to bottom of the page, if scrolled to the bottom
+        window.scrollTo(0, document.body.scrollHeight);
+    } else if (apiRequest.state === 'cancel-requested' || apiRequest.state === 'canceled') {
+        // set the result of the request to `canceled`
+        document.getElementById('overall-result').innerHTML = 'canceled';
+
+        // Render a plain note that the request was canceled
+        render(html`<pre>Request was canceled on user request.</pre>`, document.getElementById('main'));
+    }
+
+    // show results-junit.xml in header if it exists
+    if (await fetchHeader(baseUrl + '/results-junit.xml')) {
+        document.getElementById('download-junit-separator').removeAttribute('hidden');
+        document.getElementById('download-junit').removeAttribute('hidden');
+        document.getElementById('download-junit').setAttribute('href', baseUrl + '/results-junit.xml');
+    }
+
+    // extract request UUID from current URL; show API request when present
+    if (apiRequestUrl) {
+        document.getElementById('api-request-separator').removeAttribute('hidden');
+        document.getElementById('api-request').removeAttribute('hidden');
+        document.getElementById('api-request').setAttribute('href', apiRequestUrl);
+    }
+
+    document.getElementById('pipeline-log-separator').removeAttribute('hidden');
+    document.getElementById('pipeline-log').removeAttribute('hidden');
+    document.getElementById('pipeline-log').setAttribute('href', pipelineLogUrl);
+
+    document.getElementById('docs-separator').removeAttribute('hidden');
+    document.getElementById('docs').removeAttribute('hidden');
+    document.getElementById('docs').setAttribute('href', docsUrl);
+}
+
+main();
+</script>
+
+</html>

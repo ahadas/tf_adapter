@@ -1,9 +1,8 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import json
 import logging
-import uuid
 import requests
 import os
+import shutil
 import xml.etree.ElementTree as ET
 
 TF_RESULTS_URL = os.environ.get("TF_RESULTS_URL")
@@ -13,30 +12,54 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info(f"received a GET request ({self.path})")
         path = self.path.replace("//","/").split("/")
         run_id = path[1] if len(path) > 2 else None
+        if len(path) == 2: # Case of /runId --> /runId/
+            run_id = path[1]
         workdir = f"/srv/results/{run_id}"
         if os.path.isdir(workdir):
-            match path[2]:
-                case 'results.xml':
-                    results = handle_get_results(workdir, run_id)
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/xml')
-                    self.end_headers()
-                    self.wfile.write(results)
-                case 'results-junit.xml':
-                    with open(f"{workdir}/junit.xml", 'rb') as f:
-                        data = f.read()
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/xml')
-                    self.end_headers()
-                    self.wfile.write(data)
-                case _:
-                    self.send_response(400)
+            if len(path) == 2:
+                url = f"{self.path}/"
+                logging.info(f"forwarding a GET request to {url}")
+                self.send_response(301)
+                self.send_header('Location', url)
+                self.end_headers()
+                return
+            if path[2] == '':
+                if not os.path.exists(f"{workdir}/results.html"):
+                    shutil.copy("results.html", f"{workdir}/results.html")
+                with open(f"{workdir}/results.html", 'rb') as f:
+                    data = f.read()
+                self.send_response(200)
+                self.send_header("content-type", "text/html")
+                self.end_headers()
+                self.wfile.write(data)
+            else:
+                match path[2]:
+                    case 'results.xml':
+                        results = handle_get_results(workdir, run_id)
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/xml')
+                        self.end_headers()
+                        self.wfile.write(results)
+                    case 'results-junit.xml':
+                        with open(f"{workdir}/results-junit.xml", 'rb') as f:
+                            data = f.read()
+                        self.send_response(200)
+                        self.send_header('Content-type', 'application/xml')
+                        self.end_headers()
+                        self.wfile.write(data)
+                    case _:
+                        self.send_response(400)
         else:
             response = self.forward_get()
             self.send_response(response.status_code)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(response.content)
+
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
 
     def forward_get(self):
         url = f"{TF_RESULTS_URL}{self.path}"
