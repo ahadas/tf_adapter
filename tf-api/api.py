@@ -116,7 +116,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             return exporter
 
         logging.info(exporters)
-        return list(map(to_board, exporters))
+        return list(map(to_board, exporters['items']))
 
     def handle_get_request(self, run_id):
         response = {}
