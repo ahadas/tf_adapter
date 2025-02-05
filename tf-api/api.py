@@ -111,11 +111,11 @@ class CustomHandler(BaseHTTPRequestHandler):
             logging.error("Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s\n" % e)
 
         def to_board(exporter):
-            logging.info(exporter)
             exporter['name'] = exporter['metadata']['name']
             exporter['enabled'] = True
             return exporter
 
+        logging.info(exporters)
         return list(map(to_board, exporters))
 
     def handle_get_request(self, run_id):
