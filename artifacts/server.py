@@ -11,9 +11,7 @@ class CustomHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         logging.info(f"received a GET request ({self.path})")
         path = self.path.replace("//","/").split("/")
-        run_id = path[1] if len(path) > 2 else None
-        if len(path) == 2: # Case of /runId --> /runId/
-            run_id = path[1]
+        run_id = path[1] if len(path) > 1 else None
         workdir = f"/srv/results/{run_id}"
         if os.path.isdir(workdir):
             if len(path) == 2:
@@ -55,11 +53,6 @@ class CustomHandler(BaseHTTPRequestHandler):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
             self.wfile.write(response.content)
-
-    def do_HEAD(self):
-        self.send_response(200)
-        self.send_header("Content-type", "text/html")
-        self.end_headers()
 
     def forward_get(self):
         url = f"{TF_RESULTS_URL}{self.path}"
