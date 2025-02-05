@@ -49,6 +49,12 @@ rules:
   verbs:
     - create
     - get
+- apiGroups:
+    - jumpstarter.dev
+  resources:
+    - exporters
+  verbs:
+    - list
 ---
 apiVersion: apps/v1
 kind: Deployment
