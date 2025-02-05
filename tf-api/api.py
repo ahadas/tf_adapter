@@ -36,6 +36,11 @@ class CustomHandler(BaseHTTPRequestHandler):
                     self.send_header('Content-type', 'application/json')
                     self.end_headers()
                     self.wfile.write(json.dumps(response).encode('utf-8'))
+                case _:
+                    self.send_response(400)
+        else:
+            endpoint = path[2]
+            match endpoint:
                 case 'inventory':
                     match path[1]:
                         case 'j784s4evm':
@@ -45,14 +50,11 @@ class CustomHandler(BaseHTTPRequestHandler):
                             self.end_headers()
                             self.wfile.write(json.dumps(response).encode('utf-8'))
                 case _:
-                    self.send_response(400)
-        else:
-            response = self.forward_get()
-            self.send_response(response.status_code)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(response.content)
-
+                    response = self.forward_get()
+                    self.send_response(response.status_code)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(response.content)
 
     def do_POST(self):
         logging.info("received a POST request")
