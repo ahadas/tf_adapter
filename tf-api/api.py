@@ -36,6 +36,14 @@ class CustomHandler(BaseHTTPRequestHandler):
                     self.send_header('Content-type', 'application/json')
                     self.end_headers()
                     self.wfile.write(json.dumps(response).encode('utf-8'))
+                case 'inventory':
+                    match path[1]:
+                        case 'j784s4evm':
+                            response = self.handle_get_ti_784()
+                            self.send_response(200)
+                            self.send_header('Content-type', 'application/json')
+                            self.end_headers()
+                            self.wfile.write(json.dumps(response).encode('utf-8'))
                 case _:
                     self.send_response(400)
         else:
@@ -85,6 +93,13 @@ class CustomHandler(BaseHTTPRequestHandler):
         url = f"{TF_API_URL}{self.path}"
         logging.info(f"forwarding a POST request to {url}")
         return requests.post(url, data=post_data, headers=self.headers)
+
+    def handle_get_ti_784(self):
+        boards = []
+        board = {}
+        board['name'] = 'abcd'
+        boards.append(board)
+        return boards
 
     def handle_get_request(self, run_id):
         response = {}
