@@ -97,12 +97,25 @@ class CustomHandler(BaseHTTPRequestHandler):
         return requests.post(url, data=post_data, headers=self.headers)
 
     def handle_get_ti_784(self):
-        boards = []
-        board = {}
-        board['name'] = 'abcd'
-        board['enabled'] = True
-        boards.append(board)
-        return boards
+        exporters = []
+        try:
+            api_instance = client.CustomObjectsApi()
+            exporters = api_instance.list_namespaced_custom_object(
+                group='jumpstarter.dev',
+                version='v1alpha1',
+                namespace=POD_NAMESPACE,
+                plural='exporters',
+                label_selector='board-type=TI-784',
+            )
+        except ApiException as e:
+            logging.error("Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s\n" % e)
+
+        def to_board(exporter):
+            exporter['name'] = exporter['metadata']['name']
+            exporter['enabled'] = True
+            return exporter
+
+        return list(map(to_board, exporters))
 
     def handle_get_request(self, run_id):
         response = {}
