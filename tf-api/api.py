@@ -100,6 +100,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         boards = []
         board = {}
         board['name'] = 'abcd'
+        board['enabled'] = True
         boards.append(board)
         return boards
 
