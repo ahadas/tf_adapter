@@ -54,6 +54,11 @@ class CustomHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(response.content)
 
+    def do_HEAD(self):
+        self.send_response(200)
+        self.send_header("Content-type", "text/html")
+        self.end_headers()
+
     def forward_get(self):
         url = f"{TF_RESULTS_URL}{self.path}"
         logging.info(f"forwarding a GET request to {url}")
