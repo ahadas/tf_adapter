@@ -152,7 +152,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             'metadata': {'name':run_name, 'namespace': POD_NAMESPACE},
             'spec': {
                 'params': [
-                    {'name': 'plan-name', 'value': f"^/plans{data['test']['fmf']['name']}"},
+                    {'name': 'plan-name', 'value': data['test']['fmf']['name']},
                     {'name': 'test-name', 'value': test_name},
                     {'name': 'hw-target', 'value': data['environments'][0]['arch']},
                     {'name': 'testRunId', 'value': run_id},
