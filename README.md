@@ -4,6 +4,6 @@ The first component `tf-api` handles TF requests and requests for board inventor
 
 The second component `artifacts` handles requests for both http and rsync requests for getting test artifacts. Its container image is stored in https://quay.io/repository/ahadas/tf_artifacts.  
 
-The `conf` folder holds two deployments of the above mentioned containers, and a deployment of test-console (TC) which is a client that used to interacts with TF.  
+The `conf` folder holds two deployments of the above mentioned containers, and a deployment of test-console (TC) which is a client that used to interact with TF.  
 
 The OpenShift/Tekton pipeline that is being triggered can be found [here](https://gitlab.com/rh-sdv-cloud-incubator/rcar-s4-test).  
