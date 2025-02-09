@@ -155,8 +155,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'board', 'value': board},
                     {'name': 'testBrunch', 'value': test_branch},
                     #{'name': 'board', 'value': data['environments'][0]['variables'].get('HW_TARGET', '')},
-                    {'name': 'board', 'value': 'rcar-29'},
-                    {'name': 'skipProvisioning', 'value': 'true'}, #TODO 
+                    {'name': 'skipProvisioning', 'value': 'true'}, #TODO
                     {'name': 'clientName', 'value': data['settings']['pipeline'].get('client', 'demo')}, 
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
                     {'name': 'ctx', 'value': dict(data['environments'][0]['tmt']['context'])},
