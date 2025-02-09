@@ -158,8 +158,8 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'skipProvisioning', 'value': 'true'}, #TODO
                     {'name': 'clientName', 'value': data['settings']['pipeline'].get('client', 'demo')}, 
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
-                    {'name': 'ctx', 'value': dict(data['environments'][0]['tmt']['context'])},
-                    {'name': 'env', 'value': dict(data['environments'][0]['tmt']['environment'])},
+                    {'name': 'ctx', 'value': str(dict(data['environments'][0]['tmt']['context']))},
+                    {'name': 'env', 'value': str(dict(data['environments'][0]['tmt']['environment']))},
                 ],
                 'pipelineRef': {'name': 'rcar-s4-test-pipeline'},
                 'taskRunTemplate': {'serviceAccountName': 'pipeline'},
