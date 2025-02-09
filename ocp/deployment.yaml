@@ -82,6 +82,8 @@ spec:
               value: https://api.dev.testing-farm.io
             - name: BOARD
               value: rcar-29
+            - name: PIPELINE
+              value: rcar-s4-test-pipeline
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

@@ -161,7 +161,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'ctx', 'value': str(dict(data['environments'][0]['tmt']['context']))},
                     {'name': 'env', 'value': str(dict(data['environments'][0]['tmt']['environment']))},
                 ],
-                'pipelineRef': {'name': 'rcar-s4-test-pipeline'},
+                'pipelineRef': {'name': os.environ.get('PIPELINE')},
                 'taskRunTemplate': {'serviceAccountName': 'pipeline'},
                 'workspaces': [
                     {'name': 'jumpstarter-client-secret', 'secret': {'secretName': 'demo-config'}},
