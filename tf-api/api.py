@@ -230,7 +230,7 @@ def get_state_and_result(run_id):
                     return 'running', 'unknown'
                 case 'Completed':
                     return 'complete', 'passed' if conds['type'] == 'Succeeded' else 'failed'
-                case 'Failed' | 'Cancelled' | 'Timeout':
+                case 'Failed' | 'Cancelled' | 'Timeout' | 'PipelineValidationFailed' | 'ParameterTypeMismatch':
                     return 'complete', 'failed'
     except:
         return 'new', 'unknown'
