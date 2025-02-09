@@ -137,6 +137,11 @@ class CustomHandler(BaseHTTPRequestHandler):
         test_branch =  data['environments'][0]['variables'].get('CUSTOM_DISCOVER_BRANCH', 'main')
         test_name = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_TESTS', data['test']['fmf'].get('test_name', ''))
 
+        context_data = data["environments"][0]["tmt"]["context"]
+        context_str = json.dumps(context_data, indent=2)
+        environment_data = data["environments"][0]["tmt"]["environment"]
+        environment_str = json.dumps(environment_data, indent=2)
+
         board = os.environ.get('BOARD')
         if not board:
             board = data['environments'][0]['variables'].get('HW_TARGET', '')
@@ -158,8 +163,8 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'skipProvisioning', 'value': 'true'}, #TODO
                     {'name': 'client-name', 'value': data['settings']['pipeline'].get('client', 'demo')}, 
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
-                    {'name': 'ctx', 'value': str(dict(data['environments'][0]['tmt']['context']))},
-                    {'name': 'env', 'value': str(dict(data['environments'][0]['tmt']['environment']))},
+                    {'name': 'ctx', 'value': str(context_str)},
+                    {'name': 'env', 'value': str(environment_str)},
                 ],
                 'pipelineRef': {'name': os.environ.get('PIPELINE')},
                 'taskRunTemplate': {'serviceAccountName': 'pipeline'},
