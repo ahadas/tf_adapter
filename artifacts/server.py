@@ -65,7 +65,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         return requests.get(url)
 
 def handle_get_results(workdir, run_id):
-    tree = ET.parse(f"{workdir}/junit.xml")
+    tree = ET.parse(f"{workdir}/results-junit.xml")
     overall_result = 'passed'
     root = tree.getroot()
     suites = {}
