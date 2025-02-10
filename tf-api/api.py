@@ -218,6 +218,7 @@ def get_boards(board_type):
     def to_board(exporter):
         exporter['name'] = exporter['metadata']['name']
         exporter['enabled'] = True
+        exporter['borrowed'] = False
         return exporter
 
     logging.info(exporters)
