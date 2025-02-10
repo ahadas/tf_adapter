@@ -45,16 +45,18 @@ class CustomHandler(BaseHTTPRequestHandler):
                     match path[1]:
                         case 'j784s4evm':
                             response = self.handle_get_ti_784()
-                            self.send_response(200)
-                            self.send_header('Content-type', 'application/json')
-                            self.end_headers()
-                            self.wfile.write(json.dumps(response).encode('utf-8'))
                         case 'rcar_s4':
                             response = self.handle_get_rcar_s4()
-                            self.send_response(200)
-                            self.send_header('Content-type', 'application/json')
-                            self.end_headers()
-                            self.wfile.write(json.dumps(response).encode('utf-8'))
+                        case 'ridesx4':
+                            response = self.handle_get_ridesx4()
+                        case _:
+                            logging.error(f"received an invalid board-type: {path[1]}")
+                            self.send_response(400)
+                            return
+                    self.send_response(200)
+                    self.send_header('Content-type', 'application/json')
+                    self.end_headers()
+                    self.wfile.write(json.dumps(response).encode('utf-8'))
                 case _:
                     response = self.forward_get()
                     self.send_response(response.status_code)
@@ -101,6 +103,9 @@ class CustomHandler(BaseHTTPRequestHandler):
         url = f"{TF_API_URL}{self.path}"
         logging.info(f"forwarding a POST request to {url}")
         return requests.post(url, data=post_data, headers=self.headers)
+
+    def handle_get_ridesx4(self):
+        return get_boards('RideSX4')
 
     def handle_get_rcar_s4(self):
         return get_boards('RenesasS4')
