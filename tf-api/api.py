@@ -49,6 +49,12 @@ class CustomHandler(BaseHTTPRequestHandler):
                             self.send_header('Content-type', 'application/json')
                             self.end_headers()
                             self.wfile.write(json.dumps(response).encode('utf-8'))
+                        case 'rcar_s4':
+                            response = self.handle_get_rcar_s4()
+                            self.send_response(200)
+                            self.send_header('Content-type', 'application/json')
+                            self.end_headers()
+                            self.wfile.write(json.dumps(response).encode('utf-8'))
                 case _:
                     response = self.forward_get()
                     self.send_response(response.status_code)
@@ -96,27 +102,11 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info(f"forwarding a POST request to {url}")
         return requests.post(url, data=post_data, headers=self.headers)
 
+    def handle_get_rcar_s4(self):
+        return get_boards('RenesasS4')
+
     def handle_get_ti_784(self):
-        exporters = []
-        try:
-            api_instance = client.CustomObjectsApi()
-            exporters = api_instance.list_namespaced_custom_object(
-                group='jumpstarter.dev',
-                version='v1alpha1',
-                namespace=POD_NAMESPACE,
-                plural='exporters',
-                label_selector='board-type=TI-784',
-            )
-        except ApiException as e:
-            logging.error("Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s\n" % e)
-
-        def to_board(exporter):
-            exporter['name'] = exporter['metadata']['name']
-            exporter['enabled'] = True
-            return exporter
-
-        logging.info(exporters)
-        return list(map(to_board, exporters['items']))
+        return get_boards('TI-784')
 
     def handle_get_request(self, run_id):
         response = {}
@@ -201,6 +191,28 @@ class CustomHandler(BaseHTTPRequestHandler):
         # Adding the run UUID to follow the request
         pipelinerun['id'] = run_id
         return pipelinerun
+
+def get_boards(board_type):
+    exporters = []
+    try:
+        api_instance = client.CustomObjectsApi()
+        exporters = api_instance.list_namespaced_custom_object(
+            group='jumpstarter.dev',
+            version='v1alpha1',
+            namespace=POD_NAMESPACE,
+            plural='exporters',
+            label_selector=f"board-type={board_type}",
+        )
+    except ApiException as e:
+        logging.error("Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s\n" % e)
+
+    def to_board(exporter):
+        exporter['name'] = exporter['metadata']['name']
+        exporter['enabled'] = True
+        return exporter
+
+    logging.info(exporters)
+    return list(map(to_board, exporters['items']))
 
 def get_run_name(run_id):
     return f"test-{run_id}"
