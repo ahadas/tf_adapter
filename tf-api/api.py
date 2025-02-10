@@ -138,8 +138,11 @@ class CustomHandler(BaseHTTPRequestHandler):
         environment_str = json.dumps(environment_data, indent=2)
 
         board = os.environ.get('BOARD')
-        if not board:
-            board = data['environments'][0]['variables'].get('HW_TARGET', '')
+        if board:
+            exporter_labels = f"board={board}"
+        else:
+            board_type = data['environments'][0]['variables'].get('HW_TARGET', '')
+            exporter_labels = f"board-type={board_type}"
 
         pipelinerun = {
             'apiVersion': 'tekton.dev/v1',
@@ -152,6 +155,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'hw-target', 'value': data['environments'][0]['arch']},
                     {'name': 'testRunId', 'value': run_id},
                     {'name': 'testsRepo', 'value': git_url},
+                    {'name': 'exporter-labels', 'value': exporter_labels},
                     {'name': 'board', 'value': board},
                     {'name': 'testBrunch', 'value': test_branch},
                     #{'name': 'board', 'value': data['environments'][0]['variables'].get('HW_TARGET', '')},
