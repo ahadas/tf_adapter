@@ -23,7 +23,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                 return
             if path[2] == '':
                 if not os.path.exists(f"{workdir}/results.html"):
-                    shutil.copy("/usr/local/results.html", f"{workdir}/results.html")
+                    shutil.copyfile("/usr/local/results.html", f"{workdir}/results.html")
                 with open(f"{workdir}/results.html", 'rb') as f:
                     data = f.read()
                 self.send_response(200)
