@@ -141,7 +141,9 @@ class CustomHandler(BaseHTTPRequestHandler):
         if board:
             exporter_labels = f"board={board}"
         else:
-            board_type = data['environments'][0]['variables'].get('HW_TARGET', '')
+            board_type = os.environ.get('BOARD-TYPE')
+            if not board_type:
+                board_type = data['environments'][0]['variables'].get('HW_TARGET', '')
             exporter_labels = f"board-type={board_type}"
 
         pipelinerun = {
