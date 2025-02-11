@@ -102,7 +102,8 @@ const isPassed = result => result.includes('pass');
 const tooManyTestcases = 2;
 
 // HACK: the request API url should be read from some metadata file instead
-const apiUrl = 'https://api.testing-farm.io/v0.1/requests';
+//const apiUrl = 'https://api.testing-farm.io/v0.1/requests';
+const apiUrl = 'http://tf-api-demo.apps.zmeya.rh-internal.ocm/v0.1/requests';
 
 const uuidRegex = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/;
 
@@ -149,8 +150,13 @@ function stagePlaceholder (stage) {
     }
 }
 
+function changeUrl (url) {
+    return url.replace("https://artifacts.osci.redhat.com", "http://artifacts-demo.apps.zmeya.rh-internal.ocm")
+}
+
 async function fetchFile (url, options) {
     try {
+        url = changeUrl(url)
         const response = await fetch(url, options);
         if (response.ok) {
             return await response.text();
@@ -246,7 +252,7 @@ function renderLogs (logElements, artifactsAnchor, stage) {
     const inlineLogs = [];
     logElements.forEach(log => {
         let name = log.getAttribute('name');
-        const href = log.getAttribute('href');
+        const href = changeUrl(log.getAttribute('href'));
         if (!name) { name = href }
         const placeholder = stagePlaceholder(stage);
         // HACK: results.xml should have unique names; fix that, and then clean this up
