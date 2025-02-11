@@ -158,7 +158,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'testRunId', 'value': run_id},
                     {'name': 'testsRepo', 'value': git_url},
                     {'name': 'exporter-labels', 'value': exporter_labels},
-                    {'name': 'board', 'value': board},
+                    {'name': 'board', 'value': board}, # TODO: remove (deprecated in favor of exporter-labels)
                     {'name': 'testBrunch', 'value': test_branch},
                     #{'name': 'board', 'value': data['environments'][0]['variables'].get('HW_TARGET', '')},
                     {'name': 'skipProvisioning', 'value': 'true'}, #TODO
