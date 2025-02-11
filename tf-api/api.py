@@ -13,6 +13,13 @@ config.load_incluster_config()
 
 TF_API_URL = os.environ.get("TF_API_URL")
 POD_NAMESPACE = os.environ.get("POD_NAMESPACE")
+
+# Environment variables
+BOARD = "BOARD"
+BOARD_TYPE = "BOARD-TYPE"
+PIPELINE = "PIPELINE"
+TMT_IMAGE = "TMT_IMAGE"
+
 DB_PATH = "/srv/db/db.json"
 
 class CustomError(Exception):
@@ -135,11 +142,11 @@ class CustomHandler(BaseHTTPRequestHandler):
         environment_data = data["environments"][0]["tmt"]["environment"]
         environment_str = json.dumps(environment_data, indent=2)
 
-        board = os.environ.get('BOARD')
+        board = os.environ.get(BOARD)
         if board:
             exporter_labels = f"board={board}"
         else:
-            board_type = os.environ.get('BOARD-TYPE')
+            board_type = os.environ.get(BOARD_TYPE)
             if not board_type:
                 board_type = data['environments'][0]['variables'].get('HW_TARGET', '')
             exporter_labels = f"board-type={board_type}"
@@ -164,7 +171,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'ctx', 'value': str(context_str)},
                     {'name': 'env', 'value': str(environment_str)},
                 ],
-                'pipelineRef': {'name': os.environ.get('PIPELINE')},
+                'pipelineRef': {'name': os.environ.get(PIPELINE)},
                 'taskRunTemplate': {'serviceAccountName': 'pipeline'},
                 'workspaces': [
                     {'name': 'jumpstarter-client-secret', 'secret': {'secretName': 'demo-config'}},
@@ -178,7 +185,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         if 'test_name' in data['test']['fmf'].keys():
             pipelinerun['spec']['params'].append({'name': 'test-name', 'value': data['test']['fmf']['test_name']})
         '''
-        tmt_image = os.environ.get("TMT_IMAGE")
+        tmt_image = os.environ.get(TMT_IMAGE)
         if tmt_image:
             pipelinerun['spec']['params'].append({'name': 'tmt-image', 'value': tmt_image})
         
