@@ -123,8 +123,6 @@ class CustomHandler(BaseHTTPRequestHandler):
         return response
 
     def handle_post_request(self, data):
-        logging.info('handling request')
-
         run_id = str(uuid.uuid4())
         run_name = get_run_name(run_id)
 
