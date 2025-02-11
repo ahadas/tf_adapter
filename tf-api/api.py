@@ -19,6 +19,7 @@ BOARD = "BOARD"
 BOARD_TYPE = "BOARD-TYPE"
 PIPELINE = "PIPELINE"
 TMT_IMAGE = "TMT_IMAGE"
+PROVISIONING = "PROVISIONING"
 
 DB_PATH = "/srv/db/db.json"
 
@@ -165,7 +166,6 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'exporter-labels', 'value': exporter_labels},
                     {'name': 'board', 'value': board}, # TODO: remove (deprecated in favor of exporter-labels)
                     {'name': 'testBrunch', 'value': test_branch},
-                    {'name': 'skipProvisioning', 'value': 'true'}, #TODO
                     {'name': 'client-name', 'value': data['settings']['pipeline'].get('client', 'demo')}, 
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
                     {'name': 'ctx', 'value': str(context_str)},
@@ -188,7 +188,10 @@ class CustomHandler(BaseHTTPRequestHandler):
         tmt_image = os.environ.get(TMT_IMAGE)
         if tmt_image:
             pipelinerun['spec']['params'].append({'name': 'tmt-image', 'value': tmt_image})
-        
+
+        provisioning = os.environ.get(PROVISIONING) or 'true' # TODO: default to false
+        pipelinerun['spec']['params'].append({'name': 'skipProvisioning', 'value': provisioning})
+
         #output = yaml.dump(pipelinerun, sort_keys=False)
         #logging.info(output)
 
