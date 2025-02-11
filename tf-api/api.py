@@ -160,7 +160,6 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'exporter-labels', 'value': exporter_labels},
                     {'name': 'board', 'value': board}, # TODO: remove (deprecated in favor of exporter-labels)
                     {'name': 'testBrunch', 'value': test_branch},
-                    #{'name': 'board', 'value': data['environments'][0]['variables'].get('HW_TARGET', '')},
                     {'name': 'skipProvisioning', 'value': 'true'}, #TODO
                     {'name': 'client-name', 'value': data['settings']['pipeline'].get('client', 'demo')}, 
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
