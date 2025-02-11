@@ -222,7 +222,7 @@ def get_boards(board_type):
         exporter['borrowed'] = False
         return exporter
 
-    logging.info(exporters)
+    logging.info(f"exporters: {exporters}")
     return list(map(to_board, exporters['items']))
 
 def get_run_name(run_id):
