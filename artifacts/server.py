@@ -45,6 +45,13 @@ class CustomHandler(BaseHTTPRequestHandler):
                         self.send_header('Content-type', 'application/xml')
                         self.end_headers()
                         self.wfile.write(data)
+                    case 'artifacts':
+                        with open(f"/srv/results/{'/'.join(path)}", 'rb') as f:
+                            data = f.read()
+                        self.send_response(200)
+                        self.send_header("content-type", "text/plain")
+                        self.end_headers()
+                        self.wfile.write(data)
                     case _:
                         self.send_response(400)
         else:
@@ -94,7 +101,13 @@ def handle_get_results(workdir, run_id):
         logs = ET.SubElement(item, "logs")
         log = ET.SubElement(logs, "log")
         log.set('name', 'workdir')
-        log.set('href', f"https://artifacts.osci.redhat.com/{run_id}/artifacts{name}")
+        log.set('href', f'https://artifacts.osci.redhat.com/{run_id}/artifacts{name}')
+        log = ET.SubElement(logs, "log")
+        log.set('name', 'tmt-verbose-log')
+        log.set('href', f'https://artifacts.osci.redhat.com/{run_id}/artifacts{name}/log.txt')
+        log = ET.SubElement(logs, "log")
+        log.set('name', 'tmt-reproducer')
+        log.set('href', f'https://artifacts.osci.redhat.com/{run_id}/artifacts{name}/tmt-reproducer.sh')
     xml = ET.tostring(testsuites, encoding='utf-8')
     logging.info('result: ' + xml.decode('utf-8'))
     return xml
