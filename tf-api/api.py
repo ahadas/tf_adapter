@@ -191,9 +191,6 @@ class CustomHandler(BaseHTTPRequestHandler):
         provisioning = os.environ.get(PROVISIONING) or 'true' # TODO: default to false
         pipelinerun['spec']['params'].append({'name': 'skipProvisioning', 'value': provisioning})
 
-        #output = yaml.dump(pipelinerun, sort_keys=False)
-        #logging.info(output)
-
         api_instance = client.CustomObjectsApi()
         response = api_instance.create_namespaced_custom_object(
             group='tekton.dev',
@@ -202,7 +199,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             plural='pipelineruns',
             body=pipelinerun,
         )
-        logging.info(response)
+        logging.info(f"created pipelinerun:\n{json.dumps(response, indent=2)}")
         save_run(run_id)
 
         # Adding the run UUID to follow the request
