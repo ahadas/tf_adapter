@@ -149,12 +149,16 @@ class CustomHandler(BaseHTTPRequestHandler):
 
         board = os.environ.get(BOARD)
         if board:
-            exporter_labels = f"board={board}"
+            exporter_labels = [
+                f"board={board}",
+            ]
         else:
             board_type = os.environ.get(BOARD_TYPE)
             if not board_type:
                 board_type = data['environments'][0]['variables'].get('HW_TARGET', '')
-            exporter_labels = f"board-type={board_type}"
+            exporter_labels = [
+                f"board-type={board_type}",
+            ]
 
         pipelinerun = {
             'apiVersion': 'tekton.dev/v1',
