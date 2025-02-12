@@ -79,8 +79,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         post_data = self.rfile.read(content_length)
         data = json.loads(post_data)
         logging.info(self.path)
-        #pretty_data = json.dumps(data, indent=4)
-        #logging.info(pretty_data)
+        logging.info(f"data:\n{json.dumps(data, indent=2)}")
 
         if (self.path.split("/")[-1] == 'requests' and
                 (data['environments'][0]['variables'].get('HW_TARGET', 'VM') != 'VM'
