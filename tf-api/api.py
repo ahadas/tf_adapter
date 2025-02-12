@@ -143,6 +143,10 @@ class CustomHandler(BaseHTTPRequestHandler):
         environment_data = data["environments"][0]["tmt"]["environment"]
         environment_str = json.dumps(environment_data, indent=2)
 
+        compose = data["environments_requested"][0]["os"]["compose"]
+        parsed_compose = json.loads(compose)
+        image_url = parsed_compose["disk_image"]
+
         board = os.environ.get(BOARD)
         if board:
             exporter_labels = f"board={board}"
@@ -169,6 +173,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
                     {'name': 'ctx', 'value': context_str},
                     {'name': 'env', 'value': environment_str},
+                    {'name': 'image-url', 'value': image_url},
                 ],
                 'pipelineRef': {'name': os.environ.get(PIPELINE)},
                 'taskRunTemplate': {'serviceAccountName': 'pipeline'},
