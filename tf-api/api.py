@@ -175,7 +175,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                 'params': [
                     {'name': 'plan-name', 'value': data['test']['fmf']['name']},
                     {'name': 'test-name', 'value': test_name},
-                    {'name': 'hw-target', 'value': data['environments'][0]['arch']},
+                    {'name': 'hw-target', 'value': board_type if board_type else data['environments'][0]['variables'].get('HW_TARGET', '')},
                     {'name': 'testRunId', 'value': run_id},
                     {'name': 'testsRepo', 'value': git_url},
                     {'name': 'exporter-labels', 'value': exporter_labels},
