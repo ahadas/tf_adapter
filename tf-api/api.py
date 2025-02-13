@@ -119,7 +119,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         return get_boards('RenesasS4')
 
     def handle_get_ti_784(self):
-        return get_boards('TI-784')
+        return get_boards('j784s4evm')
 
     def handle_get_request(self, run_id):
         response = {}
