@@ -108,6 +108,9 @@ def handle_get_results(workdir, run_id):
         log = ET.SubElement(logs, "log")
         log.set('name', 'tmt-reproducer')
         log.set('href', f'https://artifacts.osci.redhat.com/{run_id}/artifacts{name}/tmt-reproducer.sh')
+        log = ET.SubElement(logs, "log")
+        log.set('name', 'tmt-jmp-reproducer')
+        log.set('href', f'https://artifacts.osci.redhat.com/{run_id}/artifacts{name}/tmt-jmp-reproducer.sh')
     xml = ET.tostring(testsuites, encoding='utf-8')
     logging.info('result: ' + xml.decode('utf-8'))
     return xml
