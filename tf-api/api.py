@@ -22,9 +22,9 @@ TMT_IMAGE = "TMT_IMAGE"
 PROVISIONING = "PROVISIONING"
 
 # Board types
-RCAR_S4_TYPE = "RenesasS4"
-RIDE_SX4_TYPE = "RideSX4"
-J784S4EVM_TYPE = "TI-784"
+RCAR_S4_TYPE = "rcar_s4"
+RIDE_SX4_TYPE = "ridesx4"
+J784S4EVM_TYPE = "j784s4evm"
 
 DB_PATH = "/srv/db/db.json"
 
