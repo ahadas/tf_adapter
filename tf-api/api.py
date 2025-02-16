@@ -21,6 +21,11 @@ PIPELINE = "PIPELINE"
 TMT_IMAGE = "TMT_IMAGE"
 PROVISIONING = "PROVISIONING"
 
+# Board types
+RCAR_S4_TYPE = "RenesasS4"
+RIDE_SX4_TYPE = "RideSX4"
+J784S4EVM_TYPE = "TI-784"
+
 DB_PATH = "/srv/db/db.json"
 
 class CustomError(Exception):
@@ -113,13 +118,13 @@ class CustomHandler(BaseHTTPRequestHandler):
         return requests.post(url, data=post_data, headers=self.headers)
 
     def handle_get_ridesx4(self):
-        return get_boards('RideSX4')
+        return get_boards(RIDE_SX4_TYPE)
 
     def handle_get_rcar_s4(self):
-        return get_boards('RenesasS4')
+        return get_boards(RCAR_S4_TYPE)
 
     def handle_get_ti_784(self):
-        return get_boards('j784s4evm')
+        return get_boards(J784S4EVM_TYPE)
 
     def handle_get_request(self, run_id):
         response = {}
