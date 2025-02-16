@@ -455,6 +455,13 @@ function selectInlineTestsuiteLogs (testsuite, failedSetup, isPipelineRunning) {
                     log.setAttribute(SHOW_ATTR, '');
                 }
             });
+        testsuite.querySelectorAll(':scope > logs > log[name="tmt-jmp-reproducer"]')
+            .forEach(log => {
+                console.log('fetching', log.getAttribute('href'));
+                if (fetchFile(log.getAttribute('href'))) {
+                    log.setAttribute(SHOW_ATTR, '');
+                }
+            });
     }
     if (!failedSetup) { return }
 
