@@ -52,7 +52,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             match endpoint:
                 case 'inventory':
                     match path[1]:
-                        case 'j784s4evm':
+                        case 'ti-j784s4':
                             response = self.handle_get_ti_784()
                         case 'rcar_s4':
                             response = self.handle_get_rcar_s4()
