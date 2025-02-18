@@ -288,7 +288,7 @@ def get_state_and_result(run_id):
                     return 'complete', 'failed'
     except:
         logging.info(f"failed to retrieve status of pipeline for run {run_id}")
-        return 'new', 'unknown'
+        return 'complete', 'failed'
 
 def get_db():
     return TinyDB(DB_PATH)
