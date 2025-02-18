@@ -269,7 +269,7 @@ def fetch_run(run_name):
 
 def get_state_and_result(run_id):
     runStatus = fetch_run(get_run_name(run_id))
-    logging.info(f"runStatus: {runStatus}")
+    logging.info(f"runStatus for {run_id}: {runStatus}")
     try:
         conds = runStatus['status'].get(
             'conditions')  # Succeeded -> reasons: PipelineRunPending, Running, Succeeded, Failed, Cancelled, Timeout. Status->True/False/Unknown
@@ -285,7 +285,7 @@ def get_state_and_result(run_id):
                     return 'running', 'unknown'
                 case 'Completed':
                     return 'complete', 'passed' if conds['type'] == 'Succeeded' else 'failed'
-                case 'Failed' | 'Cancelled' | 'Timeout' | 'PipelineValidationFailed' | 'ParameterTypeMismatch':
+                case 'Failed' | 'Cancelled' | 'Timeout' | 'PipelineValidationFailed' | 'ParameterTypeMismatch' | 'PipelineRunTimeout':
                     return 'complete', 'failed'
     except:
         logging.info(f"failed to retrieve status of pipeline for run {run_id}")
