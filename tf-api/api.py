@@ -287,6 +287,7 @@ def get_state_and_result(run_id):
                 case 'Failed' | 'Cancelled' | 'Timeout' | 'PipelineValidationFailed' | 'ParameterTypeMismatch':
                     return 'complete', 'failed'
     except:
+        logging.info(f"failed to retrieve status of pipeline for run {run_id}")
         return 'new', 'unknown'
 
 def get_db():
