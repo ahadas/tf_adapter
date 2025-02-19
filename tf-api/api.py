@@ -20,6 +20,7 @@ BOARD_TYPE = "BOARD-TYPE"
 PIPELINE = "PIPELINE"
 TMT_IMAGE = "TMT_IMAGE"
 PROVISIONING = "PROVISIONING"
+TIMEOUT = "TIMEOUT"
 
 # Board types
 RCAR_S4_TYPE = "rcar_s4"
@@ -192,6 +193,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'image-url', 'value': image_url},
                 ],
                 'pipelineRef': {'name': os.environ.get(PIPELINE)},
+                'timeouts': {'pipeline': os.environ.get(TIMEOUT)},
                 'taskRunTemplate': {'serviceAccountName': 'pipeline'},
                 'workspaces': [
                     {'name': 'jumpstarter-client-secret', 'secret': {'secretName': 'demo-config'}},
