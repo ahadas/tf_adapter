@@ -80,6 +80,8 @@ spec:
           env:
             - name: TF_API_URL
               value: https://api.dev.testing-farm.io
+            - name: TIMEOUT
+              value: 3h0m0s
             - name: PIPELINE
               value: test-pipeline
             - name: POD_NAMESPACE
