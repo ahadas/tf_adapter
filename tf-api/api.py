@@ -149,16 +149,18 @@ class CustomHandler(BaseHTTPRequestHandler):
         environment_data = data["environments"][0]["tmt"]["environment"]
         environment_str = json.dumps(environment_data, indent=2)
 
-        compose = (
-            data.get("environments", [{}])[0]
-            .get("os", {})
-            .get("compose", "")
-        )
-        if not compose:
-            return {"error": "'environments' or 'compose' not found"}
+        image_url = os.environ.get("IMAGE_URL")
+        if not image_url:
+            compose = (
+                data.get("environments", [{}])[0]
+                .get("os", {})
+                .get("compose", "")
+            )
+            if not compose:
+                return {"error": "'environments' or 'compose' not found"}
 
-        parsed_compose = json.loads(compose)
-        image_url = parsed_compose["disk_image"]
+            parsed_compose = json.loads(compose)
+            image_url = parsed_compose["disk_image"]
 
         board = os.environ.get(BOARD)
         if board:

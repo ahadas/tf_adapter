@@ -80,6 +80,8 @@ spec:
           env:
             - name: TF_API_URL
               value: https://api.dev.testing-farm.io
+            - name: IMAGE
+              value: https://autosd.sig.centos.org/AutoSD-9/nightly/TI/auto-osbuild-j784s4evm-autosd9-qa-regular-aarch64-1707518541.e6b348fc.raw.xz
             - name: TIMEOUT
               value: 3h0m0s
             - name: PIPELINE
