@@ -39,10 +39,18 @@ spec:
               value: http://artifacts-demo.apps.zmeya.rh-internal.ocm
             - name: TF_RSYNC_ARTIFACTS_URL
               value: rsync://artifacts.demo.svc.cluster.local/artifacts
+            - name: KUBECONFIG
+              value: /etc/kube/kubeconfig
           volumeMounts:
             - name: test-console-storage
               mountPath: /var/lib/test-console
+            - name: kubeconfig-secret-volume
+              mountPath: /etc/kube/kubeconfig
+              subPath: kubeconfig
       volumes:
         - name: test-console-storage
           persistentVolumeClaim:
             claimName: test-console-storage
+        - name: kubeconfig-secret-volume
+          secret:
+            secretName: kubeconfig-secret
