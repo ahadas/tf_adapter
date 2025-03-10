@@ -35,7 +35,7 @@ spec:
           env:
             - name: OCP_API_URL
               value: http://tf-api-demo.apps.zmeya.rh-internal.ocm
-            - name: TF_RESULTS_URL
+            - name: OCP_RESULTS_URL
               value: http://artifacts-demo.apps.zmeya.rh-internal.ocm
             - name: TF_RSYNC_ARTIFACTS_URL
               value: rsync://artifacts.demo.svc.cluster.local/artifacts
