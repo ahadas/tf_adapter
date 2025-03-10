@@ -172,6 +172,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             exporter_labels = [
                 f"board-type={board_type}",
             ]
+        hw_target = board_type if board_type else data['environments'][0]['variables'].get('HW_TARGET', '')
 
         pipelinerun = {
             'apiVersion': 'tekton.dev/v1',
@@ -181,7 +182,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                 'params': [
                     {'name': 'plan-name', 'value': data['test']['fmf']['name']},
                     {'name': 'test-name', 'value': test_name},
-                    {'name': 'hw-target', 'value': board_type if board_type else data['environments'][0]['variables'].get('HW_TARGET', '')},
+                    {'name': 'hw-target', 'value': hw_target.removesuffix('-ocp')},
                     {'name': 'testRunId', 'value': run_id},
                     {'name': 'testsRepo', 'value': git_url},
                     {'name': 'exporter-labels', 'value': exporter_labels},
