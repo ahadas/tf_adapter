@@ -7,3 +7,5 @@ The second component `artifacts` handles requests for both http and rsync reques
 The `conf` folder holds two deployments of the above mentioned containers, and a deployment of test-console (TC) which is a client that used to interact with TF.  
 
 The OpenShift/Tekton pipeline that is being triggered can be found [here](https://gitlab.com/rh-sdv-cloud-incubator/rcar-s4-test).  
+
+oc -n demo create secret generic kubeconfig-secret --from-file=kubeconfig=conf/kubeconfig.yaml
