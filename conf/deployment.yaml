@@ -83,7 +83,7 @@ spec:
             - name: TIMEOUT
               value: 3h0m0s
             - name: PIPELINE
-              value: test-pipeline-arik
+              value: test-pipeline
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:

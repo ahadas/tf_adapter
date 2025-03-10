@@ -19,7 +19,7 @@ BOARD = "BOARD"
 BOARD_TYPE = "BOARD-TYPE"
 PIPELINE = "PIPELINE"
 TMT_IMAGE = "TMT_IMAGE"
-PROVISIONING = "PROVISIONING"
+SKIP_PROVISIONING = "SKIP_PROVISIONING"
 TIMEOUT = "TIMEOUT"
 
 # Board types
@@ -212,8 +212,8 @@ class CustomHandler(BaseHTTPRequestHandler):
         if tmt_image:
             pipelinerun['spec']['params'].append({'name': 'tmt-image', 'value': tmt_image})
 
-        provisioning = os.environ.get(PROVISIONING) or 'true' # TODO: default to false
-        pipelinerun['spec']['params'].append({'name': 'skipProvisioning', 'value': provisioning})
+        skipProvisioning = os.environ.get(SKIP_PROVISIONING) or 'false'
+        pipelinerun['spec']['params'].append({'name': 'skipProvisioning', 'value': skipProvisioning})
 
         api_instance = client.CustomObjectsApi()
         response = api_instance.create_namespaced_custom_object(
