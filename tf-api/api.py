@@ -11,7 +11,6 @@ import os
 
 config.load_incluster_config()
 
-TF_API_URL = os.environ.get("TF_API_URL")
 POD_NAMESPACE = os.environ.get("POD_NAMESPACE")
 
 # Environment variables
@@ -72,12 +71,6 @@ class CustomHandler(BaseHTTPRequestHandler):
                     self.send_header('Content-type', 'application/json')
                     self.end_headers()
                     self.wfile.write(json.dumps(response).encode('utf-8'))
-                case _:
-                    response = self.forward_get()
-                    self.send_response(response.status_code)
-                    self.send_header('Content-type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(response.content)
 
     def do_POST(self):
         logging.info("received a POST request")
@@ -87,9 +80,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         logging.info(self.path)
         logging.info(f"data:\n{json.dumps(data, indent=2)}")
 
-        if (self.path.split("/")[-1] == 'requests' and
-                (data['environments'][0]['variables'].get('HW_TARGET', 'VM') != 'VM'
-                 or not 'hardware' in data['environments'][0])):
+        if self.path.split("/")[-1] == 'requests':
             try:
                 response = self.handle_post_request(data)
                 self.send_response(200)
@@ -102,21 +93,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                 self.end_headers()
                 self.wfile.write(e.message.encode('utf-8'))
         else:
-            response = self.forward_post(post_data)
-            self.send_response(response.status_code)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(response.content)
-
-    def forward_get(self):
-        url = f"{TF_API_URL}{self.path}"
-        logging.info(f"forwarding a GET request to {url}")
-        return requests.get(url)
-
-    def forward_post(self, post_data):
-        url = f"{TF_API_URL}{self.path}"
-        logging.info(f"forwarding a POST request to {url}")
-        return requests.post(url, data=post_data, headers=self.headers)
+            self.send_response(404)
 
     def handle_get_ridesx4(self):
         return get_boards(RIDE_SX4_TYPE)
