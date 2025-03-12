@@ -149,7 +149,7 @@ class CustomHandler(BaseHTTPRequestHandler):
             if not board_type:
                 board_type = data['environments'][0]['variables'].get('HW_TARGET', '')
             exporter_labels = [
-                f"board-type={board_type}",
+                f"board-type={board_type.removesuffix("-ocp")}",
             ]
         hw_target = board_type if board_type else data['environments'][0]['variables'].get('HW_TARGET', '')
 
