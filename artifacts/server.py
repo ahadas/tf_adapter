@@ -5,22 +5,21 @@ import os
 import shutil
 import xml.etree.ElementTree as ET
 
-TF_RESULTS_URL = os.environ.get("TF_RESULTS_URL")
-
 class CustomHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         logging.info(f"received a GET request ({self.path})")
         path = self.path.replace("//","/").split("/") # TODO: drop 'replace("//", "/")' when TC always includes 752c3740
-        run_id = path[1] if len(path) > 1 else None
-        workdir = f"/srv/results/{run_id}"
-        if os.path.isdir(workdir):
-            if len(path) == 2:
-                url = f"{self.path}/"
-                logging.info(f"forwarding a GET request to {url}")
-                self.send_response(301)
-                self.send_header('Location', url)
-                self.end_headers()
-                return
+        if len(path) < 2:
+            self.send_response(404)
+        elif len(path) == 2:
+            url = f"{self.path}/"
+            logging.info(f"forwarding a GET request to {url}")
+            self.send_response(301)
+            self.send_header('Location', url)
+            self.end_headers()
+        else:
+            run_id = path[1]
+            workdir = f"/srv/results/{run_id}"
             if path[2] == '':
                 if not os.path.exists(f"{workdir}/results.html"):
                     shutil.copyfile("/usr/local/results.html", f"{workdir}/results.html")
@@ -54,22 +53,11 @@ class CustomHandler(BaseHTTPRequestHandler):
                         self.wfile.write(data)
                     case _:
                         self.send_response(400)
-        else:
-            response = self.forward_get()
-            self.send_response(response.status_code)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(response.content)
 
     def do_HEAD(self):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
-
-    def forward_get(self):
-        url = f"{TF_RESULTS_URL}{self.path}"
-        logging.info(f"forwarding a GET request to {url}")
-        return requests.get(url)
 
 def handle_get_results(workdir, run_id):
     tree = ET.parse(f"{workdir}/results-junit.xml")

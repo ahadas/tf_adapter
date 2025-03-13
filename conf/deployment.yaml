@@ -106,9 +106,6 @@ spec:
           volumeMounts:
             - name: tmt-results
               mountPath: /srv/results
-          env:
-            - name: TF_RESULTS_URL
-              value: https://artifacts.osci.redhat.com
       volumes:
         - name: tmt-results
           persistentVolumeClaim:
