@@ -66,11 +66,9 @@ spec:
           image: quay.io/ahadas/tf_adapter:latest
           ports:
             - containerPort: 8080
-          env:
-            - name: TF_API_URL
-              value: https://api.dev.testing-farm.io
-            - name: IMAGE_URL
-              value: https://autosd.sig.centos.org/AutoSD-9/nightly/TI/auto-osbuild-j784s4evm-autosd9-qa-regular-aarch64-1711846169.e6b348fc.raw.xz
+		  env:
+		    - name: IMAGE_URL
+              value: https://autosd.sig.centos.org/AutoSD-9/nightly/TI/auto-osbuild-j784s4evm-autosd9-qa-regular-aarch64-1714037577.b2be808b.raw.xz
             - name: TIMEOUT
               value: 3h0m0s
             - name: PIPELINE
