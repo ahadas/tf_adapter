@@ -20,6 +20,9 @@ class CustomHandler(BaseHTTPRequestHandler):
         else:
             run_id = path[1]
             workdir = f"/srv/results/{run_id}"
+            if not os.path.isdir(workdir):
+                self.send_response(500)
+                return
             if path[2] == '':
                 if not os.path.exists(f"{workdir}/results.html"):
                     shutil.copyfile("/usr/local/results.html", f"{workdir}/results.html")
