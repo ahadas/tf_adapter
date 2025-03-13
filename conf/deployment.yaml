@@ -26,20 +26,19 @@ metadata:
   name: tf-api
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
   name: tf-api
 roleRef:
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
+  kind: Role
   name: tf-api
 subjects:
 - kind: ServiceAccount
   name: tf-api
-  namespace: demo
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
   name: tf-api
 rules:
