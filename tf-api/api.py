@@ -216,7 +216,7 @@ def get_boards(board_type):
         exporters = api_instance.list_namespaced_custom_object(
             group='jumpstarter.dev',
             version='v1alpha1',
-            namespace='default',
+            namespace=POD_NAMESPACE,
             plural='exporters',
             label_selector=f"board-type={board_type}",
         )
