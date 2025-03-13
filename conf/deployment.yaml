@@ -10,17 +10,6 @@ spec:
       storage: 10Gi
 ---
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
-  name: adapter-db
-spec:
-  accessModes:
-    - ReadWriteOnce
-  resources:
-    requests:
-      storage: 1Gi
----
-apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: tf-api
@@ -90,14 +79,7 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-          volumeMounts:
-            - name: adapter-db
-              mountPath: /srv/db
       serviceAccountName: tf-api
-      volumes:
-        - name: adapter-db
-          persistentVolumeClaim:
-            claimName: adapter-db
 ---
 apiVersion: apps/v1
 kind: Deployment
