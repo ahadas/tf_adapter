@@ -75,6 +75,8 @@ spec:
               value: 3h0m0s
             - name: PIPELINE
               value: test-pipeline
+            - name: EXPORTERS_NAMESPACE
+              value: jumpstarter-lab
             - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
