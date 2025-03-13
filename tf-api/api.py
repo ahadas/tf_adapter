@@ -34,38 +34,41 @@ class CustomHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         logging.info("received a GET request")
         path = self.path.split("/")
-        run_id = path[3] if len(path) > 3 else None
-        if run_id in runs:
-            endpoint = path[2]
-            match endpoint:
-                case 'requests':
-                    response = self.handle_get_request(run_id)
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/json')
-                    self.send_header('Access-Control-Allow-Origin', '*')
-                    self.end_headers()
-                    self.wfile.write(json.dumps(response).encode('utf-8'))
-                case _:
+        if len(path) < 3:
+            logging.error(f"received an invalid GET request: {self.path}")
+            self.send_response(400)
+            return
+        match path[2]:
+            case 'requests':
+                if len(path) < 4:
+                    logging.error(f"received an invalid GET request: {self.path} (missing request id)")
                     self.send_response(400)
-        else:
-            endpoint = path[2]
-            match endpoint:
-                case 'inventory':
-                    match path[1]:
-                        case 'j784s4evm':
-                            response = self.handle_get_ti_784()
-                        case 'rcar_s4':
-                            response = self.handle_get_rcar_s4()
-                        case 'ridesx4':
-                            response = self.handle_get_ridesx4()
-                        case _:
-                            logging.error(f"received an invalid board-type: {path[1]}")
-                            self.send_response(400)
-                            return
-                    self.send_response(200)
-                    self.send_header('Content-type', 'application/json')
-                    self.end_headers()
-                    self.wfile.write(json.dumps(response).encode('utf-8'))
+                    return
+                run_id = path[3]
+                response = self.handle_get_request(run_id)
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            case 'inventory':
+                match path[1]:
+                    case 'j784s4evm':
+                        response = self.handle_get_ti_784()
+                    case 'rcar_s4':
+                        response = self.handle_get_rcar_s4()
+                    case 'ridesx4':
+                        response = self.handle_get_ridesx4()
+                    case _:
+                        logging.error(f"received an invalid board-type: {path[1]}")
+                        self.send_response(400)
+                        return
+                self.send_response(200)
+                self.send_header('Content-type', 'application/json')
+                self.end_headers()
+                self.wfile.write(json.dumps(response).encode('utf-8'))
+            case _:
+                self.send_response(400)
 
     def do_POST(self):
         logging.info("received a POST request")
