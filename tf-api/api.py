@@ -10,6 +10,7 @@ import os
 config.load_incluster_config()
 
 POD_NAMESPACE = os.environ.get("POD_NAMESPACE")
+EXPORTERS_NAMESPACE = os.environ.get("EXPORTERS_NAMESPACE", POD_NAMESPACE)
 
 # Environment variables
 BOARD = "BOARD"
@@ -213,7 +214,7 @@ def get_boards(board_type):
         exporters = api_instance.list_namespaced_custom_object(
             group='jumpstarter.dev',
             version='v1alpha1',
-            namespace=POD_NAMESPACE,
+            namespace=EXPORTERS_NAMESPACE,
             plural='exporters',
             label_selector=f"board-type={board_type}",
         )
