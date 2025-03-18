@@ -33,9 +33,9 @@ spec:
           securityContext:
             privileged: true
           env:
-            - name: OCP_API_URL
+            - name: TF_OCP_API_URL
               value: http://tf-api-demo.apps.zmeya.rh-internal.ocm
-            - name: OCP_RESULTS_URL
+            - name: TF_OCP_RESULTS_URL
               value: http://artifacts-demo.apps.zmeya.rh-internal.ocm
             - name: KUBECONFIG
               value: /etc/kube/kubeconfig
