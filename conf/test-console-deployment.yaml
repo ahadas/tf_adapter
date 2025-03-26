@@ -30,8 +30,6 @@ spec:
           image: quay.io/ahadas/test-console:latest
           ports:
             - containerPort: 8000
-          securityContext:
-            privileged: true
           env:
             - name: TF_OCP_API_URL
               value: http://tf-api-demo.apps.zmeya.rh-internal.ocm
