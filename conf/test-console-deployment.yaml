@@ -33,9 +33,9 @@ spec:
             - containerPort: 8443
           env:
             - name: TF_OCP_API_URL
-              value: http://tf-api-demo.apps.zmeya.rh-internal.ocm
+              value: http://tf-api-tf-ocp--runtime-int.apps.mpp.preprod.iad2.dc.paas.redhat.com
             - name: TF_OCP_RESULTS_URL
-              value: http://artifacts-demo.apps.zmeya.rh-internal.ocm
+              value: http://artifacts-tf-ocp--runtime-int.apps.mpp.preprod.iad2.dc.paas.redhat.com
             - name: KUBECONFIG
               value: /etc/kube/kubeconfig
           volumeMounts:
