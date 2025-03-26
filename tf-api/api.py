@@ -154,7 +154,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         pipelinerun = {
             'apiVersion': 'tekton.dev/v1',
             'kind': 'PipelineRun',
-            'metadata': {'name':run_name, 'namespace': POD_NAMESPACE},
+            'metadata': {'name':run_name, 'namespace': 'tf-ocp--pipeline'},
             'spec': {
                 'params': [
                     {'name': 'plan-name', 'value': data['test']['fmf']['name']},
