@@ -196,7 +196,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         response = api_instance.create_namespaced_custom_object(
             group='tekton.dev',
             version='v1',
-            namespace=POD_NAMESPACE,
+            namespace='tf-ocp--pipeline',
             plural='pipelineruns',
             body=pipelinerun,
         )
@@ -240,7 +240,7 @@ def fetch_run(run_name):
         return api_instance.get_namespaced_custom_object(
             group='tekton.dev',
             version='v1',
-            namespace=POD_NAMESPACE,
+            namespace='tf-ocp--pipeline',
             plural='pipelineruns',
             name=run_name
         )
