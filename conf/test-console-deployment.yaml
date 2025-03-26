@@ -30,6 +30,7 @@ spec:
           image: quay.io/ahadas/test-console:latest
           ports:
             - containerPort: 8000
+            - containerPort: 8443
           env:
             - name: TF_OCP_API_URL
               value: http://tf-api-demo.apps.zmeya.rh-internal.ocm
@@ -43,6 +44,12 @@ spec:
             - name: kubeconfig-secret-volume
               mountPath: /etc/kube/kubeconfig
               subPath: kubeconfig
+            - name: test-console-secret
+              mountPath: /etc/pki/nginx/private/test-console.key
+              subPath: tls.key
+            - name: test-console-secret
+              mountPath: /etc/pki/nginx/test-console-chain.pem
+              subPath: tls.crt
       volumes:
         - name: test-console-storage
           persistentVolumeClaim:
@@ -50,3 +57,39 @@ spec:
         - name: kubeconfig-secret-volume
           secret:
             secretName: kubeconfig-secret
+        - name: test-console-secret
+          secret:
+            secretName: test-console
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: test-console
+  annotations:
+    service.beta.openshift.io/serving-cert-secret-name: test-console
+spec:
+  ports:
+    - protocol: TCP
+      port: 443
+      targetPort: 8443
+  selector:
+    app: test-console
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: test-console
+  labels:
+    shard: internal
+spec:
+  host: test-console.apps.int.mpp.preprod.iad2.dc.paas.redhat.com
+  to:
+    kind: Service
+    name: test-console
+    weight: 100
+  port:
+    targetPort: 8443
+  tls:
+    termination: passthrough
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
