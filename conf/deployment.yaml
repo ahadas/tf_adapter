@@ -129,6 +129,8 @@ apiVersion: route.openshift.io/v1
 kind: Route
 metadata:
   name: tf-api
+  labels:
+    shard: internal
 spec:
   port:
     targetPort: 8080
@@ -160,6 +162,7 @@ kind: Route
 metadata:
   labels:
     app: artifacts
+    shard: internal
   name: artifacts
 spec:
   port:
