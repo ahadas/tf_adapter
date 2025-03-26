@@ -170,14 +170,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'env', 'value': environment_str},
                     {'name': 'image-url', 'value': image_url},
                 ],
-                'pipelineRef': {
-                    'resolver': 'cluster',
-                    'params': [
-                        {'name': 'kind', 'value': 'Pipeline'},
-                        {'name': 'name', 'value': os.environ.get(PIPELINE)},
-                        {'name': 'namespace', 'value': 'tf-ocp--pipeline'},
-                    ],
-                },
+                'pipelineRef': {'name': os.environ.get(PIPELINE)},
                 'timeouts': {'pipeline': os.environ.get(TIMEOUT)},
                 'taskRunTemplate': {'serviceAccountName': 'pipeline'},
                 'workspaces': [
