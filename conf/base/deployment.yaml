@@ -15,18 +15,6 @@ metadata:
   name: tf-api
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: tf-api
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: tf-api
-subjects:
-- kind: ServiceAccount
-  name: tf-api
----
-apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: tf-api
@@ -44,6 +32,18 @@ rules:
     - exporters
   verbs:
     - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tf-api
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tf-api
+subjects:
+- kind: ServiceAccount
+  name: tf-api
 ---
 apiVersion: apps/v1
 kind: Deployment
