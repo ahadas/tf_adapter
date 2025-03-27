@@ -35,7 +35,7 @@ spec:
             - name: TF_OCP_API_URL
               value: ""
             - name: TF_OCP_RESULTS_URL
-              value: http://artifacts-tf-ocp--runtime-int.apps.mpp.preprod.iad2.dc.paas.redhat.com
+              value: ""
             - name: KUBECONFIG
               value: /etc/kube/kubeconfig
           volumeMounts:
@@ -79,8 +79,6 @@ kind: Route
 apiVersion: route.openshift.io/v1
 metadata:
   name: test-console
-  labels:
-    shard: internal
 spec:
   host: test-console.apps.int.mpp.preprod.iad2.dc.paas.redhat.com
   to:
