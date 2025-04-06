@@ -267,7 +267,7 @@ def get_state_and_result(run_id):
                     return 'complete', 'passed' if conds['type'] == 'Succeeded' else 'failed'
                 case 'Succeeded':
                     return 'complete', 'passed'
-                case 'Failed' | 'Cancelled' | 'Timeout' | 'PipelineValidationFailed' | 'ParameterTypeMismatch' | 'PipelineRunTimeout':
+                case 'Failed' | 'Cancelled' | 'Timeout' | 'PipelineValidationFailed' | 'ParameterTypeMismatch' | 'PipelineRunTimeout' | 'CouldntGetPipeline':
                     return 'complete', 'failed'
     except:
         logging.info(f"failed to retrieve status of pipeline for run {run_id}")
