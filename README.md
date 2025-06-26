@@ -1,6 +1,6 @@
 This repository includes two container images that together serve as an adapter that on the one hand, exposes the API of [Testing Farm (TF)](https://docs.testing-farm.io/Testing%20Farm/0.1/index.html), and on the other hand, runs a pipeline on OpenShift. This can be used as a temporary solution for migrating from TF to OpenShift pipelines / Konflux.  
 
-The first component `tf-api` handles TF requests and requests for board inventories. Its container image is stored in https://quay.io/repository/ahadas/tf_adapter.  
+The first component `tf-api` handles TF requests and requests for board inventories. Its container image is stored in https://quay.io/repository/ahadas/tf_api.  
 
 The second component `artifacts` handles requests for both http and rsync requests for getting test artifacts. Its container image is stored in https://quay.io/repository/ahadas/tf_artifacts.  
 
