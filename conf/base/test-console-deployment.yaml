@@ -80,7 +80,6 @@ apiVersion: route.openshift.io/v1
 metadata:
   name: test-console
 spec:
-  host: test-console.apps.int.mpp.preprod.iad2.dc.paas.redhat.com
   to:
     kind: Service
     name: test-console
