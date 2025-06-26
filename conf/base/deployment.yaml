@@ -63,7 +63,7 @@ spec:
     spec:
       containers:
         - name: tf-api
-          image: quay.io/ahadas/tf_adapter:latest
+          image: quay.io/ahadas/tf_api:latest
           ports:
             - containerPort: 8080
           env:
