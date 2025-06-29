@@ -1,0 +1,132 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: tmt-test
+spec:
+  params:
+    - name: plan-name
+      description: TMT plan name pattern
+      type: string
+      default: ""
+    - name: test-name
+      description: TMT test name
+      type: string
+      default: ""
+    - name: hw-target
+      description: Hardware target name
+      type: string
+      default: rcar_s4
+    - name: jmp-lease-id
+      description: The Lease ID to use
+      type: string
+    - name: testRunId
+      description: Test run ID
+      type: string
+    - name: testsRepo
+      description: Tests Repository URL
+      type: string
+      default: 'https://gitlab.com/bzlotnik/simple-tmt.git'
+    - name: client-name
+      description: Jumpstarter client name to use
+      type: string
+    - name: tmt-image
+      description: Base TMT image to run the tests
+      type: string
+      default: 'quay.io/bzlotnik/js-tmt:latest'
+    - name: testBranch
+      type: string
+      description: The branch in the Git repository to use for the test
+      default: main
+    - name: ctx
+      type: string
+      description: tmt context variable to execute
+      default: "{}"
+    - name: env
+      type: string
+      description: tmt envirable variable to execute
+      default: "{}"
+  steps:
+    - image: $(params.tmt-image)
+      name: run-test
+      env:
+      - name: TMT_CTX
+        value: "$(params.ctx)"
+      - name: TMT_ENV
+        value: "$(params.env)"
+      script: |
+        #!/usr/bin/env bash
+        set -uxo pipefail
+
+        jmp config client use $(params.client-name)
+        export JMP_LEASE=$(params.jmp-lease-id)
+
+        git -c http.sslVerify=false clone -b "$(params.testBranch)" "$(params.testsRepo)" /app/tests
+
+        cd /app/tmt-test
+
+        PYTEST_ARGS="-s --verbose test_tmt.py --hw-target=$(params.hw-target) --workdir-root=/var/tmp/tmt --config=$(params.client-name).yaml --run-id=$(params.testRunId)"
+
+        if [ ! -z "$(params.plan-name)" ]; then
+          PYTEST_ARGS="$PYTEST_ARGS --plan-name=$(params.plan-name)"
+        fi
+
+        if [ ! -z "$(params.test-name)" ]; then
+          PYTEST_ARGS="$PYTEST_ARGS --test-name=$(params.test-name)"
+        fi
+
+        python3 -m pytest $PYTEST_ARGS
+
+        mkdir -m 777 -p /workspace/test-results/$(params.testRunId)/
+
+        tmt run \
+          --id $(params.testRunId) \
+          report \
+          --how junit \
+          --file /workspace/test-results/$(params.testRunId)/results-junit.xml
+
+        echo "copying artifacts from /var/tmp/tmt/$(params.testRunId) to /workspace/test-results/$(params.testRunId)/"
+        mkdir -m 777 -p /workspace/test-results/$(params.testRunId)/artifacts
+        cp -r /var/tmp/tmt/$(params.testRunId)/* /workspace/test-results/$(params.testRunId)/artifacts/
+        cat > /workspace/test-results/$(params.testRunId)/summary_$(params.testRunId).txt << EOF
+        Test Run Summary
+        ===============
+        Run ID: $(params.testRunId)
+        Plan: $(params.plan-name)
+        Test: $(params.test-name)
+        Target: $(params.hw-target)
+        Date: $(date)
+        EOF
+
+        PLAN_PATH=$(echo $(params.plan-name) | sed 's/$$//')
+        TMT_COMMAND=$(cat /workspace/test-results/$(params.testRunId)/artifacts/tmt_command.log)
+
+        # reproducer script
+        cat > /workspace/test-results/$(params.testRunId)/artifacts$PLAN_PATH/tmt-reproducer.sh << EOF
+        # tmt reproducer | https://docs.testing-farm.io/Testing%20Farm/0.1/test-results.html#_reproducer
+        git -c http.sslVerify=false clone -b "$(params.testBranch)" "$(params.testsRepo)" testcode
+        cd testcode
+        $TMT_COMMAND
+        tmt run --id $(params.testRunId) report --how junit --file results-junit.xml
+        EOF
+
+        # jmp reproducer script
+        cat > /workspace/test-results/$(params.testRunId)/artifacts$PLAN_PATH/tmt-jmp-reproducer.sh << EOF
+        # tmt reproducer | https://docs.testing-farm.io/Testing%20Farm/0.1/test-results.html#_reproducer
+        jmp client use-config "$(params.client-name)"
+        export JMP_LEASE="$(params.jmp-lease-id)"
+        git -c http.sslVerify=false clone -b "$(params.testBranch)" "$(params.testsRepo)" testcode
+        cd testcode
+        $TMT_COMMAND
+        tmt run --id $(params.testRunId) report --how junit --file results-junit.xml
+        jmp client lease release -l "$JMP_LEASE"
+        EOF
+
+        cp /workspace/test-results/$(params.testRunId)/artifacts/log.txt /workspace/test-results/$(params.testRunId)/artifacts$PLAN_PATH/log.txt
+  workspaces:
+    - name: jumpstarter-client-secret
+      description: Workspace to mount the Jumpstarter client file
+      mountPath: /root/.config/jumpstarter/clients
+      readOnly: true
+    - name: test-results
+      description: Workspace for TMT test results
+      mountPath: /workspace/test-results

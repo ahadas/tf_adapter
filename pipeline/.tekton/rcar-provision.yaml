@@ -1,0 +1,47 @@
+apiVersion: tekton.dev/v1
+kind: Task
+metadata:
+  name: jumpstarter-provision-board-rcar-s4
+spec:
+  params:
+    - name: jmp-lease-id
+      type: string
+    - description: Jumpstarter client name to use
+      name: client-name
+      type: string
+    - name: image-url
+      description: OS image to provision with
+      type: string
+  steps:
+    - computeResources: {}
+      image: quay.io/bzlotnik/rcar-driver:latest
+      script: |
+        #!/usr/bin/env bash
+        set -ex
+        set -o pipefail
+
+        jmp client use-config $(params.client-name)
+        export JMP_LEASE=$(params.jmp-lease-id)
+
+        jmp client shell -n "$JMP_LEASE" $(params.client-name) << 'ENDCOMMANDS'
+        set -ex
+        j rcar flash \
+          --kernel Image \
+          --initramfs initramfs-debug.img \
+          --dtb r8a779f0-spider.dtb \
+          --os-image $(params.image-url)
+        exit_code=$?
+        echo "Exit code: $exit_code"
+        exit $exit_code
+        ENDCOMMANDS
+
+        EXIT_CODE=$?
+        echo "Exit code: ${EXIT_CODE}"
+        if [ $EXIT_CODE -ne 0 ]; then
+          echo "Error: flash command failed with exit code ${EXIT_CODE}"
+          exit $EXIT_CODE
+        fi
+  workspaces:
+    - mountPath: /root/.config/jumpstarter/clients
+      name: jumpstarter-client-secret
+      readOnly: true

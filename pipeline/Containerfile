@@ -1,0 +1,15 @@
+FROM quay.io/jumpstarter-dev/jumpstarter:latest
+
+RUN dnf -y update && \
+    dnf -y install \
+    python3-pip \
+    python3-devel \
+    gcc \
+    git \
+    rsync
+
+WORKDIR /app/tmt-test
+ENV PYTHONPATH="/jumpstarter/lib/python3.12/site-packages:/usr/local/lib/python3.12/site-packages:/usr/lib64/python3.12/site-packages"
+
+RUN pip install tmt[report-junit] tmt[export-polarion] pytest
+RUN dnf -y install tmt tmt+export-polarion

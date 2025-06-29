@@ -1,0 +1,166 @@
+apiVersion: tekton.dev/v1
+kind: Pipeline
+metadata:
+  name: test-pipeline
+spec:
+  finally:
+    - name: release-lease
+      params:
+        - name: jmp-lease-id
+          value: $(tasks.get-lease.results.jmp-lease-id)
+        - name: client-name
+          value: $(params.client-name)
+      taskRef:
+        kind: Task
+        name: jumpstarter-release-lease
+      workspaces:
+        - name: jumpstarter-client-secret
+          workspace: jumpstarter-client-secret
+  params:
+    - name: plan-name
+      type: string
+      default: ""
+    - name: test-name
+      type: string
+      default: ""
+    - name: hw-target
+      type: string
+      default: rcar_s4
+    - name: testRunId
+      description: Unique test run identifier
+      type: string
+    - name: testsRepo
+      description: Tests Repository URL
+      type: string
+      default: https://gitlab.com/bzlotnik/simple-tmt.git
+    - name: testBranch
+      type: string
+      description: The branch in the Git repository to use for the test
+      default: main
+    - description: A list of label exporters in the format key=value
+      name: exporter-labels
+      type: array
+    - name: image-url
+      description: OS image to provision with
+      type: string
+    - description: Jumpstarter client name to use
+      name: client-name
+      type: string
+      default: "default"
+    - name: skipProvisioning
+      description: Skip board provisioning
+      type: string
+      default: "false"
+    - name: tmt-image
+      description: Base TMT image to run the tests
+      type: string
+      default: "quay.io/bzlotnik/js-tmt:latest"
+    - name: ctx
+      type: string
+      description: tmt context variable to execute
+      default: "{}"
+    - name: env
+      type: string
+      description: tmt envirable variable to execute
+      default: "{}"
+  tasks:
+    - name: get-lease
+      params:
+        - name: client-name
+          value: $(params.client-name)
+        - name: exporter-labels
+          value: ["$(params.exporter-labels[*])"]
+      taskRef:
+        kind: Task
+        name: jumpstarter-get-lease
+      workspaces:
+        - name: jumpstarter-client-secret
+          workspace: jumpstarter-client-secret
+
+    - name: provision-rcar
+      when:
+        - input: "$(params.skipProvisioning)"
+          operator: notin
+          values: ["true"]
+        - input: "$(params.hw-target)"
+          operator: in
+          values: ["rcar_s4"]
+      timeout: "20m"
+      retries: 3
+      params:
+        - name: client-name
+          value: $(params.client-name)
+        - name: jmp-lease-id
+          value: $(tasks.get-lease.results.jmp-lease-id)
+        - name: image-url
+          value: $(params.image-url)
+      runAfter:
+        - get-lease
+      taskRef:
+        kind: Task
+        name: jumpstarter-provision-board-rcar-s4
+      workspaces:
+        - name: jumpstarter-client-secret
+          workspace: jumpstarter-client-secret
+
+    - name: provision-ti
+      when:
+        - input: "$(params.skipProvisioning)"
+          operator: notin
+          values: ["true"]
+        - input: "$(params.hw-target)"
+          operator: in
+          values: ["j784s4evm"]
+      params:
+        - name: client-name
+          value: $(params.client-name)
+        - name: jmp-lease-id
+          value: $(tasks.get-lease.results.jmp-lease-id)
+        - name: image-url
+          value: $(params.image-url)
+      runAfter:
+        - get-lease
+      taskRef:
+        kind: Task
+        name: jumpstarter-provision-board-ti
+      workspaces:
+        - name: jumpstarter-client-secret
+          workspace: jumpstarter-client-secret
+
+    - name: run-test
+      params:
+        - name: plan-name
+          value: $(params.plan-name)
+        - name: test-name
+          value: $(params.test-name)
+        - name: hw-target
+          value: $(params.hw-target)
+        - name: jmp-lease-id
+          value: $(tasks.get-lease.results.jmp-lease-id)
+        - name: testRunId
+          value: $(params.testRunId)
+        - name: testsRepo
+          value: $(params.testsRepo)
+        - name: client-name
+          value: $(params.client-name)
+        - name: tmt-image
+          value: $(params.tmt-image)
+        - name: ctx
+          value: $(params.ctx)
+        - name: env
+          value: $(params.env)
+      runAfter:
+        - get-lease
+        - provision-rcar
+        - provision-ti
+      taskRef:
+        kind: Task
+        name: tmt-test
+      workspaces:
+        - name: jumpstarter-client-secret
+          workspace: jumpstarter-client-secret
+        - name: test-results
+          workspace: test-results
+  workspaces:
+    - name: jumpstarter-client-secret
+    - name: test-results
