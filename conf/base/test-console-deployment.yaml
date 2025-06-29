@@ -36,14 +36,9 @@ spec:
               value: ""
             - name: TF_OCP_RESULTS_URL
               value: ""
-            - name: KUBECONFIG
-              value: /etc/kube/kubeconfig
           volumeMounts:
             - name: test-console-storage
               mountPath: /var/lib/test-console
-            - name: kubeconfig-secret-volume
-              mountPath: /etc/kube/kubeconfig
-              subPath: kubeconfig
             - name: test-console-secret
               mountPath: /etc/pki/nginx/private/test-console.key
               subPath: tls.key
@@ -54,9 +49,6 @@ spec:
         - name: test-console-storage
           persistentVolumeClaim:
             claimName: test-console-storage
-        - name: kubeconfig-secret-volume
-          secret:
-            secretName: kubeconfig-secret
         - name: test-console-secret
           secret:
             secretName: test-console
