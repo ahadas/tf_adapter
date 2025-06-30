@@ -47,6 +47,13 @@ class CustomHandler(BaseHTTPRequestHandler):
                         self.send_header('Content-type', 'application/xml')
                         self.end_headers()
                         self.wfile.write(data)
+                    case 'pipeline.log':
+                        with open(f"{workdir}/pipeline.log", 'rb') as f:
+                            data = f.read()
+                        self.send_response(200)
+                        self.send_header('Content-type', 'text/plain')
+                        self.end_headers()
+                        self.wfile.write(data)
                     case 'artifacts':
                         with open(f"/srv/results/{'/'.join(path)}", 'rb') as f:
                             data = f.read()
