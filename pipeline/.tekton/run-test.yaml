@@ -112,13 +112,13 @@ spec:
         # jmp reproducer script
         cat > /workspace/test-results/$(params.testRunId)/artifacts$PLAN_PATH/tmt-jmp-reproducer.sh << EOF
         # tmt reproducer | https://docs.testing-farm.io/Testing%20Farm/0.1/test-results.html#_reproducer
-        jmp client use-config "$(params.client-name)"
+        jmp config client use "$(params.client-name)"
         export JMP_LEASE="$(params.jmp-lease-id)"
         git -c http.sslVerify=false clone -b "$(params.testBranch)" "$(params.testsRepo)" testcode
         cd testcode
         $TMT_COMMAND
         tmt run --id $(params.testRunId) report --how junit --file results-junit.xml
-        jmp client lease release -l "$JMP_LEASE"
+        jmp delete leases "$JMP_LEASE"
         EOF
 
         cp /workspace/test-results/$(params.testRunId)/artifacts/log.txt /workspace/test-results/$(params.testRunId)/artifacts$PLAN_PATH/log.txt
