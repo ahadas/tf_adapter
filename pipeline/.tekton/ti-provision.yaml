@@ -14,23 +14,19 @@ spec:
       type: string
   steps:
     - computeResources: {}
-      image: quay.io/bzlotnik/ti-driver:latest
+      image: quay.io/jumpstarter-dev/jumpstarter:latest
       script: |
         #!/usr/bin/env bash
         set -ex
         set -o pipefail
 
-        jmp client use-config $(params.client-name)
+        jmp $(params.client-name)
         export JMP_LEASE=$(params.jmp-lease-id)
 
-        jmp client shell -n "$JMP_LEASE" $(params.client-name) << 'ENDCOMMANDS'
+        jmp shell --client $(params.client-name) << 'ENDCOMMANDS'
         set -e
         curl -s -k -O $(params.image-url).sha256
-        j ti flash \
-          --kernel J784S4XEVM.flasher.img \
-          --dtb k3-j784s4-evm.dtb \
-          --os-image $(params.image-url) \
-          --os-image-checksum $(basename $(params.image-url)).sha256
+        j storage flash $(params.image-url)
 
         exit_code=$?
         echo "Exit code: $exit_code"
