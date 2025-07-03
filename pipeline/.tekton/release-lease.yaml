@@ -23,7 +23,7 @@ spec:
          export JMP_LEASE_ID=$(params.jmp-lease-id)
 
          # Switch to the specified Jumpstarter client configuration
-         jmp client config use "$(params.client-name)"
+         jmp config client use "$(params.client-name)"
          echo "Using Jumpstarter client configuration: $(params.client-name)"
 
          # Release the lease associated with the provided lease ID
