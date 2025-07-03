@@ -34,7 +34,7 @@ spec:
 
          # Use the client name provided in the parameter
          echo "Using the client $(params.client-name)"
-         jmp client config use $(params.client-name)
+         jmp config client use $(params.client-name)
 
          # Loop through each label provided as argument and build 
          #TODO: Once the lease timeout is implemented, add the $parameter.lease-duration to the command.
