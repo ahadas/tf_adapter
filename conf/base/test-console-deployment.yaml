@@ -36,6 +36,9 @@ spec:
               value: ""
             - name: TF_OCP_RESULTS_URL
               value: ""
+          envFrom:
+            - secretRef:
+                name: tc
           volumeMounts:
             - name: test-console-storage
               mountPath: /var/lib/test-console
