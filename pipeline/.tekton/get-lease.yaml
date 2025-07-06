@@ -15,8 +15,8 @@ spec:
       description: Maximum wait time (in seconds) for lease acquisition before timeout.
       name: timeout
       type: string
-    - default: '3600'
-      description: Maximum time (in seconds) for holding lease before relasing it.
+    - default: '06:00:00'
+      description: Maximum time (HH:MM:SS) for holding lease before relasing it.
       name: lease-duration
       type: string
   results:
@@ -45,7 +45,7 @@ spec:
          done
 
          # Request a lease
-         JMP_LEASE_ID=$(timeout "$(params.timeout)" $CLIENT_LEASE_CMD -o name)
+         JMP_LEASE_ID=$(timeout "$(params.timeout)" $CLIENT_LEASE_CMD --duration "$(params.lease-duration)" -o name)
 
          # Output the lease ID to the Tekton results
          echo -n "$JMP_LEASE_ID" > /tekton/results/jmp-lease-id
