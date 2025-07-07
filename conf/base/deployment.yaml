@@ -67,8 +67,6 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: IMAGE_URL
-              value: https://autosd.sig.centos.org/AutoSD-9/nightly/TI/auto-osbuild-j784s4evm-autosd9-qa-regular-aarch64-1908788739.d66f1144.raw.xz
             - name: TIMEOUT
               value: 3h0m0s
             - name: PIPELINE
