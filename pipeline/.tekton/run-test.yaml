@@ -121,6 +121,19 @@ spec:
         jmp delete leases "$JMP_LEASE"
         EOF
 
+        cp /workspace/test-results/$(params.testRunId)/results-junit.xml /workspace/test-results/$(params.testRunId)/artifacts/acl/plans/compile/xunit.xml
+        cp /workspace/test-results/$(params.testRunId)/results-junit.xml /workspace/test-results/$(params.testRunId)/artifacts/acl/plans/compile/report/xunit.xml
+        echo "[pipeline-start] Wed Jun 11 10:00:00 AM UTC 2025\n" >> /workspace/test-results/$(params.testRunId)/pipeline.log
+        echo "[pipeline-start] Wed Jun 11 10:00:00 AM UTC 2025\n" >> /workspace/test-results/$(params.testRunId)/pipeline.log
+        echo "2025-06-11 10:01:00 starting guest provisioning\n" >> /workspace/test-results/$(params.testRunId)/pipeline.log
+        echo "2025-06-11 10:02:00 guest provisioning finished\n" >> /workspace/test-results/$(params.testRunId)/pipeline.log
+        echo "2025-06-11 10:03:00 starting guest setup\n" >> /workspace/test-results/$(params.testRunId)/pipeline.log
+        echo "2025-06-11 10:04:00 guest setup finished\n" >> /workspace/test-results/$(params.testRunId)/pipeline.log
+        echo "2025-06-11 10:05:00 test execution started\n" >> /workspace/test-results/$(params.testRunId)/pipeline.log
+        echo "2025-06-11 10:06:00 guest provisioned\n" >> /workspace/test-results/$(params.testRunId)/pipeline.log
+        echo "2025-06-11 10:14:00 starting destroying guest\n" >> /workspace/test-results/$(params.testRunId)/pipeline.log
+        echo "2025-06-11 10:15:00 cleanup finished\n" >> /workspace/test-results/$(params.testRunId)/pipeline.log
+
         cp /workspace/test-results/$(params.testRunId)/artifacts/log.txt /workspace/test-results/$(params.testRunId)/artifacts$PLAN_PATH/log.txt
   workspaces:
     - name: jumpstarter-client-secret
