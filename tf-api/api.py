@@ -140,15 +140,15 @@ class CustomHandler(BaseHTTPRequestHandler):
         board = os.environ.get(BOARD)
         if board:
             exporter_labels = [
-                f"board={board}",
+                f"device={board}",
             ]
         else:
-            board_type = os.environ.get(BOARD_TYPE)
-            if not board_type:
-                board_type = data['environments'][0]['variables'].get('HW_TARGET', '')
             exporter_labels = [
                 f"board-type={board_type.removesuffix("-ocp")}",
             ]
+        board_type = os.environ.get(BOARD_TYPE)
+        if not board_type:
+            board_type = data['environments'][0]['variables'].get('HW_TARGET', '')
         hw_target = board_type if board_type else data['environments'][0]['variables'].get('HW_TARGET', '')
 
         pipelinerun = {
@@ -165,6 +165,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'exporter-labels', 'value': exporter_labels},
                     {'name': 'testBrunch', 'value': test_branch},
                     {'name': 'client-name', 'value': data['settings']['pipeline'].get('client', 'demo')}, 
+                    {'name': 'existing-lease-id', 'value': '01999aaf-2d2e-73e0-b5e3-b22c55ef621d'},
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
                     {'name': 'ctx', 'value': context_str},
                     {'name': 'env', 'value': environment_str},
@@ -267,7 +268,7 @@ def get_state_and_result(run_id):
                     return 'complete', 'passed' if conds['type'] == 'Succeeded' else 'failed'
                 case 'Succeeded':
                     return 'complete', 'passed'
-                case 'Failed' | 'Cancelled' | 'Timeout' | 'PipelineValidationFailed' | 'ParameterTypeMismatch' | 'PipelineRunTimeout' | 'CouldntGetPipeline':
+                case 'Failed' | 'Cancelled' | 'Timeout' | 'PipelineValidationFailed' | 'ParameterTypeMismatch' | 'PipelineRunTimeout' | 'CouldntGetPipeline' | 'InvalidTaskRunSpecs':
                     return 'complete', 'failed'
     except:
         logging.info(f"failed to retrieve status of pipeline for run {run_id}")
