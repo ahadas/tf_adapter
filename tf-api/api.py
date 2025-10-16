@@ -22,7 +22,7 @@ TIMEOUT = "TIMEOUT"
 
 # Board types
 RCAR_S4_TYPE = "rcar_s4"
-RIDE_SX4_TYPE = "ridesx4"
+RIDE_SX4_TYPE = "qc8775"
 J784S4EVM_TYPE = "j784s4evm"
 
 class CustomError(Exception):
