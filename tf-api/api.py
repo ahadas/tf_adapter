@@ -5,6 +5,7 @@ import uuid
 from kubernetes import client, config
 from kubernetes.client.rest import ApiException
 import os
+import subprocess
 
 config.load_incluster_config()
 
@@ -113,15 +114,14 @@ class CustomHandler(BaseHTTPRequestHandler):
 
     def handle_post_request(self, data):
         run_id = str(uuid.uuid4())
-        run_name = get_run_name(run_id)
         git_url = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_URL', data['test']['fmf']['url'])
         test_branch =  data['environments'][0]['variables'].get('CUSTOM_DISCOVER_BRANCH', 'main')
         test_name = data['environments'][0]['variables'].get('CUSTOM_DISCOVER_TESTS', data['test']['fmf'].get('test_name', ''))
 
         context_data = data["environments"][0]["tmt"]["context"]
-        context_str = json.dumps(context_data, indent=2)
+        context_str = json.dumps(context_data)
         environment_data = data["environments"][0]["tmt"]["environment"]
-        environment_str = json.dumps(environment_data, indent=2)
+        environment_str = json.dumps(environment_data)
 
         image_url = os.environ.get("IMAGE_URL")
         if not image_url:
@@ -154,35 +154,30 @@ class CustomHandler(BaseHTTPRequestHandler):
                 f"board-type={board_type}",
             ]
 
-        pipelinerun = {
-            'apiVersion': 'tekton.dev/v1',
-            'kind': 'PipelineRun',
-            'metadata': {'name':run_name, 'namespace': POD_NAMESPACE},
-            'spec': {
-                'params': [
-                    {'name': 'plan-name', 'value': data['test']['fmf']['name']},
-                    {'name': 'test-name', 'value': test_name},
-                    {'name': 'hw-target', 'value': hw_target.removesuffix('-ocp')},
-                    {'name': 'testRunId', 'value': run_id},
-                    {'name': 'testsRepo', 'value': git_url},
-                    {'name': 'exporter-labels', 'value': exporter_labels},
-                    {'name': 'testBrunch', 'value': test_branch},
-                    {'name': 'client-name', 'value': data['settings']['pipeline'].get('client', 'demo')}, 
-                    {'name': 'existing-lease-id', 'value': '019a2121-b92a-7280-acc3-dbafa6a66987'},
-                    {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
-                    {'name': 'ctx', 'value': context_str},
-                    {'name': 'env', 'value': environment_str},
-                    {'name': 'image-url', 'value': image_url},
-                ],
-                'pipelineRef': {'name': os.environ.get(PIPELINE)},
-                'timeouts': {'pipeline': os.environ.get(TIMEOUT)},
-                'taskRunTemplate': {'serviceAccountName': 'pipeline'},
-                'workspaces': [
-                    {'name': 'jumpstarter-client-secret', 'secret': {'secretName': 'demo-config'}},
-                    {'name': 'test-results', 'persistentVolumeClaim': {'claimName': 'tmt-results'}},
-                ],
-            },
-        }
+        cmd = ["tkn", "pipeline", "start", os.environ.get(PIPELINE),
+               "--labels", f"run={run_id}",
+               f"--param=plan-name={data['test']['fmf']['name']}",
+               #f"--param=test-name={test_name}",
+               f"--param=aboot-image-url=arik",
+               f"--param=rootfs-image-url=arik",
+               f"--param=hw-target={hw_target.removesuffix('-ocp')}",
+               f"--param=testRunId={run_id}",
+               f"--param=testsRepo={git_url}",
+               f"--param=exporter-labels={exporter_labels}",
+               f"--param=testBranch={test_branch}",
+               f"--param=client-name={data['settings']['pipeline'].get('client', 'demo')}",
+               f"--param=existing-lease-id=019a2121-b92a-7280-acc3-dbafa6a66987",
+               #f"--param=timeout={data['settings']['pipeline'].get('timeout', '')}",
+               f"--param=ctx={context_str}",
+               f"--param=env={environment_str}",
+               f"--param=image-url={image_url}",
+               "--workspace", "name=jumpstarter-client-secret,secret=demo-config",
+               "--workspace", "name=test-results,claimName=tmt-results",
+               f"--pipeline-timeout={os.environ.get(TIMEOUT)}",
+               "--serviceaccount", "pipeline",
+               "--use-param-defaults",
+                ]
+
         '''
         if 'name' in data['test']['fmf'].keys():
             pipelinerun['spec']['params'].append({'name': 'plan-name', 'value': data['test']['fmf']['name']})
@@ -191,21 +186,52 @@ class CustomHandler(BaseHTTPRequestHandler):
         '''
         tmt_image = os.environ.get(TMT_IMAGE)
         if tmt_image:
-            pipelinerun['spec']['params'].append({'name': 'tmt-image', 'value': tmt_image})
+            cmd.append(f"--param=tmt-image={tmt_image}")
 
         skipProvisioning = os.environ.get(SKIP_PROVISIONING) or 'false'
-        pipelinerun['spec']['params'].append({'name': 'skipProvisioning', 'value': skipProvisioning})
+        cmd.append(f"--param=skipProvisioning={skipProvisioning}")
 
-        api_instance = client.CustomObjectsApi()
-        response = api_instance.create_namespaced_custom_object(
-            group='tekton.dev',
-            version='v1',
-            namespace=POD_NAMESPACE,
-            plural='pipelineruns',
-            body=pipelinerun,
-        )
+        logging.info(f"running: {" ".join(cmd)}")
+        try:
+            result = subprocess.run(cmd, capture_output=True, check=True)
+        except subprocess.CalledProcessError as e:
+            logging.error("--- TKN PIPELINERUN START ---")
+            logging.error(f"1. Command: {e.cmd}")
+            logging.error(f"2. Return Code: {e.returncode}")
 
-        logging.info(f"created pipelinerun:\n{json.dumps(response, indent=2)}")
+            # 3. Check and print STDERR (where errors go)
+            # Note: e.stderr is a string because we used text=True in the run() call.
+            if e.stderr:
+                logging.error("\n3. Standard Error (STDERR):\n" + "=" * 25)
+                logging.error(e.stderr.strip())
+
+            # 4. Check and print STDOUT (might contain context)
+            if e.stdout:
+                logging.error("\n4. Standard Output (STDOUT):\n" + "=" * 25)
+                logging.error(e.stdout.strip())
+
+        pipelinerun = {}
+        try:
+            cmd = ["tkn", "pipelinerun", "describe", get_run_name(run_id), "-o", "json"]
+            logging.info(f"running: {" ".join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, check=True)
+            pipelinerun = json.loads(result.stdout)
+            # logging.info(f"created pipelinerun:\n{json.dumps(response, indent=2)}")
+        except subprocess.CalledProcessError as e:
+            logging.error("--- TKN PIPELINERUN START ---")
+            logging.error(f"1. Command: {e.cmd}")
+            logging.error(f"2. Return Code: {e.returncode}")
+
+            # 3. Check and print STDERR (where errors go)
+            # Note: e.stderr is a string because we used text=True in the run() call.
+            if e.stderr:
+                logging.error("\n3. Standard Error (STDERR):\n" + "=" * 25)
+                logging.error(e.stderr.strip())
+
+            # 4. Check and print STDOUT (might contain context)
+            if e.stdout:
+                logging.error("\n4. Standard Output (STDOUT):\n" + "=" * 25)
+                logging.error(e.stdout.strip())
 
         # Adding the run UUID to follow the request
         pipelinerun['id'] = run_id
@@ -236,46 +262,62 @@ def get_boards(board_type):
     return list(map(to_board, exporters['items']))
 
 def get_run_name(run_id):
-    return f"test-{run_id}"
-
-def fetch_run(run_name):
+    cmd = ["tkn", "pipelineruns", "list", "--label", f"run={run_id}", "--output", "name"]
+    logging.info(f"running: {" ".join(cmd)}")
     try:
-        api_instance = client.CustomObjectsApi()
-        return api_instance.get_namespaced_custom_object(
-            group='tekton.dev',
-            version='v1',
-            namespace=POD_NAMESPACE,
-            plural='pipelineruns',
-            name=run_name
-        )
-    except ApiException as e:
-        print("Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s\n" % e)
+        result = subprocess.run(cmd, capture_output=True, check=True, text=True)
+        cmd = ["cut", "-d/", "-f2"]
+        result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
+        cmd = ["tr", "-d", "\n"]
+        result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        logging.error("--- DEBUG TKN ---")
+        logging.error(f"1. Command: {e.cmd}")
+        logging.error(f"2. Return Code: {e.returncode}")
+
+        # 3. Check and print STDERR (where errors go)
+        # Note: e.stderr is a string because we used text=True in the run() call.
+        if e.stderr:
+            logging.error("\n3. Standard Error (STDERR):\n" + "=" * 25)
+            logging.error(e.stderr.strip())
+
+        # 4. Check and print STDOUT (might contain context)
+        if e.stdout:
+            logging.error("\n4. Standard Output (STDOUT):\n" + "=" * 25)
+            logging.error(e.stdout.strip())
 
 def get_state_and_result(run_id):
-    runStatus = fetch_run(get_run_name(run_id))
-    logging.info(f"runStatus for {run_id}: {runStatus}")
+    run_name = get_run_name(run_id)
+    runStatus = 'Unknown'
     try:
-        conds = runStatus['status'].get(
-            'conditions')  # Succeeded -> reasons: PipelineRunPending, Running, Succeeded, Failed, Cancelled, Timeout. Status->True/False/Unknown
-        if not conds:
-            return 'new', 'unknown'
-        else:
-            conds = conds[0]
-            match conds['reason']:
-            # TODO check the exact mappings of the OCP to TF
-                case 'PipelineRunPending':
-                    return 'queued', 'unknown'
-                case 'Running':
-                    return 'running', 'unknown'
-                case 'Completed':
-                    return 'complete', 'passed' if conds['type'] == 'Succeeded' else 'failed'
-                case 'Succeeded':
-                    return 'complete', 'passed'
-                case 'Failed' | 'Cancelled' | 'Timeout' | 'PipelineValidationFailed' | 'ParameterTypeMismatch' | 'PipelineRunTimeout' | 'CouldntGetPipeline' | 'InvalidTaskRunSpecs':
-                    return 'complete', 'failed'
-    except:
-        logging.info(f"failed to retrieve status of pipeline for run {run_id}")
+        cmd = ["tkn", "pipelinerun", "describe", run_name, "-o", 'jsonpath={.status.conditions[?(@.type=="Succeeded")].status}']
+        logging.info(f"running: {" ".join(cmd)}")
+        result = subprocess.run(cmd, capture_output=True, check=True, text=True)
+        runStatus = result.stdout
+    except subprocess.CalledProcessError as e:
+        logging.error("--- TKN PIPELINERUN START ---")
+        logging.error(f"1. Command: {e.cmd}")
+        logging.error(f"2. Return Code: {e.returncode}")
+
+        # 3. Check and print STDERR (where errors go)
+        # Note: e.stderr is a string because we used text=True in the run() call.
+        if e.stderr:
+            logging.error("\n3. Standard Error (STDERR):\n" + "=" * 25)
+            logging.error(e.stderr.strip())
+
+        # 4. Check and print STDOUT (might contain context)
+        if e.stdout:
+            logging.error("\n4. Standard Output (STDOUT):\n" + "=" * 25)
+            logging.error(e.stdout.strip())
+
+    logging.info(f"runStatus for {run_id}: {runStatus}")
+    if runStatus == 'True':
+        return 'complete', 'passed'
+    elif runStatus == 'False':
         return 'complete', 'failed'
+    else:
+        return 'running', 'unknown'
 
 def run(server_class=HTTPServer, handler_class=CustomHandler, port=8080):
     server_address = ('', port)

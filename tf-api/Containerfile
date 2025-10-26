@@ -2,6 +2,11 @@ FROM fedora:latest
 
 RUN dnf -y install python3 python3-pip && \
     dnf clean all
+
+RUN curl -L https://github.com/tektoncd/cli/releases/download/v0.42.0/tektoncd-cli-0.42.0_Linux-ARM64.rpm -o tektoncd-cli.rpm && \
+    rpm -Uvh tektoncd-cli.rpm && \
+    rm tektoncd-cli.rpm
+
 RUN pip3 install kubernetes
 COPY api.py /usr/local/
 ENTRYPOINT ["python3", "/usr/local/api.py"]

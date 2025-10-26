@@ -12,6 +12,5 @@ COPY entrypoint.sh /usr/local/entrypoint.sh
 COPY server.py /usr/local/server.py
 COPY results.html /usr/local/results.html
 
-RUN pip3 install requests
 RUN chmod +x /usr/local/entrypoint.sh
 ENTRYPOINT ["/usr/local/entrypoint.sh"]

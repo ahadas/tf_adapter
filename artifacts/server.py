@@ -1,6 +1,5 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import logging
-import requests
 import os
 import shutil
 import subprocess
@@ -80,7 +79,30 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
 def get_run_name(run_id):
-    return f"test-{run_id}"
+    cmd = ["tkn", "pipelineruns", "list", "--label", f"run={run_id}", "--output", "name"]
+    logging.info(f"running: {" ".join(cmd)}")
+    try:
+        result = subprocess.run(cmd, capture_output=True, check=True, text=True)
+        cmd = ["cut", "-d/", "-f2"]
+        result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
+        cmd = ["tr", "-d", "\n"]
+        result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
+        return result.stdout.strip()
+    except subprocess.CalledProcessError as e:
+        logging.error("--- DEBUG TKN ---")
+        logging.error(f"1. Command: {e.cmd}")
+        logging.error(f"2. Return Code: {e.returncode}")
+
+        # 3. Check and print STDERR (where errors go)
+        # Note: e.stderr is a string because we used text=True in the run() call.
+        if e.stderr:
+            logging.error("\n3. Standard Error (STDERR):\n" + "=" * 25)
+            logging.error(e.stderr.strip())
+
+        # 4. Check and print STDOUT (might contain context)
+        if e.stdout:
+            logging.error("\n4. Standard Output (STDOUT):\n" + "=" * 25)
+            logging.error(e.stdout.strip())
 
 def handle_get_results(workdir, run_id):
     tree = ET.parse(f"{workdir}/results-junit.xml")
