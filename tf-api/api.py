@@ -149,7 +149,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         else:
             board_type = 'qc8775' if hw_target == 'ridesx4' else hw_target.removesuffix("-ocp")
             exporter_labels = [
-                f"board-type={board_type.removesuffix("-ocp")}",
+                f"board-type={board_type}",
             ]
 
         pipelinerun = {
