@@ -3,6 +3,7 @@ import logging
 import requests
 import os
 import shutil
+import subprocess
 import xml.etree.ElementTree as ET
 
 class CustomHandler(BaseHTTPRequestHandler):
@@ -48,12 +49,21 @@ class CustomHandler(BaseHTTPRequestHandler):
                         self.end_headers()
                         self.wfile.write(data)
                     case 'pipeline.log':
-                        with open(f"{workdir}/pipeline.log", 'rb') as f:
-                            data = f.read()
-                        self.send_response(200)
-                        self.send_header('Content-type', 'text/plain')
-                        self.end_headers()
-                        self.wfile.write(data)
+                        try:
+                            result = subprocess.run(
+                                ['tkn', 'pipelineruns', 'logs', get_run_name(run_id)],
+                                capture_output=True,
+                                check=True
+                            )
+                            logging.info(f"Return Code: {result.returncode}")
+                            self.send_response(200)
+                            self.send_header('Content-type', 'text/plain')
+                            self.end_headers()
+                            self.wfile.write(result.stdout)
+                        except subprocess.CalledProcessError as e:
+                            logging.error(f"Command failed with error: {e}")
+                            logging.error(f"Stderr: {e.stderr}")
+                            self.send_response(500)
                     case 'artifacts':
                         with open(f"/srv/results/{'/'.join(path)}", 'rb') as f:
                             data = f.read()
@@ -68,6 +78,9 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-type", "text/html")
         self.end_headers()
+
+def get_run_name(run_id):
+    return f"test-{run_id}"
 
 def handle_get_results(workdir, run_id):
     tree = ET.parse(f"{workdir}/results-junit.xml")
