@@ -166,7 +166,7 @@ class CustomHandler(BaseHTTPRequestHandler):
                     {'name': 'exporter-labels', 'value': exporter_labels},
                     {'name': 'testBrunch', 'value': test_branch},
                     {'name': 'client-name', 'value': data['settings']['pipeline'].get('client', 'demo')}, 
-                    {'name': 'existing-lease-id', 'value': '01999aaf-2d2e-73e0-b5e3-b22c55ef621d'},
+                    {'name': 'existing-lease-id', 'value': '019a2121-b92a-7280-acc3-dbafa6a66987'},
                     {'name': 'timeout', 'value': data['settings']['pipeline'].get('timeout', '')},
                     {'name': 'ctx', 'value': context_str},
                     {'name': 'env', 'value': environment_str},
