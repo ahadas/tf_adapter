@@ -137,19 +137,20 @@ class CustomHandler(BaseHTTPRequestHandler):
             parsed_compose = json.loads(compose)
             image_url = parsed_compose["disk_image"]
 
+        hw_target = os.environ.get(BOARD_TYPE)
+        if not hw_target:
+            hw_target = data['environments'][0]['variables'].get('HW_TARGET', '')
         board = os.environ.get(BOARD)
+
         if board:
             exporter_labels = [
                 f"device={board}",
             ]
         else:
+            board_type = 'qc8775' if hw_target == 'ridesx4' else hw_target.removesuffix("-ocp")
             exporter_labels = [
                 f"board-type={board_type.removesuffix("-ocp")}",
             ]
-        board_type = os.environ.get(BOARD_TYPE)
-        if not board_type:
-            board_type = data['environments'][0]['variables'].get('HW_TARGET', '')
-        hw_target = board_type if board_type else data['environments'][0]['variables'].get('HW_TARGET', '')
 
         pipelinerun = {
             'apiVersion': 'tekton.dev/v1',
