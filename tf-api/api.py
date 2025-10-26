@@ -135,7 +135,10 @@ class CustomHandler(BaseHTTPRequestHandler):
                 return {"error": "'environments' or 'compose' not found"}
 
             parsed_compose = json.loads(compose)
-            image_url = parsed_compose["disk_image"]
+            if "disk_image" in parsed_compose:
+                image_url = parsed_compose["disk_image"]
+            else:
+                image_url = ''
 
         hw_target = os.environ.get(BOARD_TYPE)
         if not hw_target:
