@@ -97,7 +97,7 @@ spec:
     spec:
       containers:
         - name: artifacts
-          image: quay.io/ahadas/tf_artifacts:latest
+          image: image-registry.openshift-image-registry.svc:5000/openshift/tf_artifacts:latest
           ports:
             - containerPort: 8090 # rsync
             - containerPort: 8080 # http server
