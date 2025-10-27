@@ -202,15 +202,11 @@ class CustomHandler(BaseHTTPRequestHandler):
         pipelinerun = {}
         try:
             result = subprocess.run(cmd, capture_output=True, check=True, text=True)
-            cmd = ["grep", "PipelineRun started"]
-            result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
-            cmd = ["awk", ""'{print $3}'""]
-            result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
-            run_name = result.stdout.strip()
-            cmd = ["tkn", "pipelinerun", "describe", run_name, "-o", "json"]
+            cmd = ["tkn", "pipelineruns", "list", "--label", f"run={run_id}", "--limit", "1", "--output", "json"]
             logging.info(f"running: {" ".join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, check=True)
-            pipelinerun = json.loads(result.stdout)
+            pipelineruns = json.loads(result.stdout)
+            pipelinerun = pipelineruns['items'][0] if len(pipelineruns['items']) > 0 else {}
         except subprocess.CalledProcessError as e:
             logging.error("--- TKN PIPELINERUN START ---")
             logging.error(f"1. Command: {e.cmd}")
