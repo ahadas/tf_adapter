@@ -256,37 +256,11 @@ def get_boards(board_type):
     #logging.info(f"exporters:\n{json.dumps(exporters, indent=2)}")
     return list(map(to_board, exporters['items']))
 
-def get_run_name(run_id):
-    cmd = ["tkn", "pipelineruns", "list", "--label", f"run={run_id}", "--output", "name"]
-    logging.info(f"running: {" ".join(cmd)}")
-    try:
-        result = subprocess.run(cmd, capture_output=True, check=True, text=True)
-        cmd = ["cut", "-d/", "-f2"]
-        result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
-        cmd = ["tr", "-d", "\n"]
-        result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
-        return result.stdout.strip()
-    except subprocess.CalledProcessError as e:
-        logging.error("--- DEBUG TKN ---")
-        logging.error(f"1. Command: {e.cmd}")
-        logging.error(f"2. Return Code: {e.returncode}")
-
-        # 3. Check and print STDERR (where errors go)
-        # Note: e.stderr is a string because we used text=True in the run() call.
-        if e.stderr:
-            logging.error("\n3. Standard Error (STDERR):\n" + "=" * 25)
-            logging.error(e.stderr.strip())
-
-        # 4. Check and print STDOUT (might contain context)
-        if e.stdout:
-            logging.error("\n4. Standard Output (STDOUT):\n" + "=" * 25)
-            logging.error(e.stdout.strip())
-
 def get_state_and_result(run_id):
-    run_name = get_run_name(run_id)
     runStatus = 'Unknown'
     try:
-        cmd = ["tkn", "pipelinerun", "describe", run_name, "-o", 'jsonpath={.status.conditions[?(@.type=="Succeeded")].status}']
+        cmd = ["tkn", "pipelineruns", "list", "--label", f"run={run_id}", "--limit", "1", "--output",
+              'jsonpath={.items[0].status.conditions[?(@.type=="Succeeded")].status}']
         logging.info(f"running: {" ".join(cmd)}")
         result = subprocess.run(cmd, capture_output=True, check=True, text=True)
         runStatus = result.stdout
@@ -307,10 +281,10 @@ def get_state_and_result(run_id):
             logging.error(e.stdout.strip())
 
     logging.info(f"runStatus for {run_id}: {runStatus}")
-    if runStatus == 'True':
-        return 'complete', 'passed'
-    elif runStatus == 'False':
+    if not runStatus or runStatus == 'False':
         return 'complete', 'failed'
+    elif runStatus == 'True':
+        return 'complete', 'passed'
     else:
         return 'running', 'unknown'
 
