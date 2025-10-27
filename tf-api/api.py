@@ -160,7 +160,7 @@ class CustomHandler(BaseHTTPRequestHandler):
         cmd = ["tkn", "pipeline", "start", os.environ.get(PIPELINE),
                "--labels", f"run={run_id}",
                f"--param=plan-name={data['test']['fmf']['name']}",
-               #f"--param=test-name={test_name}",
+               f"--param=test-name={test_name}",
                f"--param=hw-target={hw_target.removesuffix('-ocp')}",
                f"--param=testRunId={run_id}",
                f"--param=testsRepo={git_url}",
