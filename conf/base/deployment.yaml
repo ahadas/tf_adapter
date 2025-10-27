@@ -101,7 +101,6 @@ rules:
     - tekton.dev
   resources:
     - pipelines
-    - taskruns
   verbs:
     - get
 - apiGroups:
