@@ -79,14 +79,10 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
 def get_run_name(run_id):
-    cmd = ["tkn", "pipelineruns", "list", "--label", f"run={run_id}", "--output", "name"]
+    cmd = ["tkn", "pipelineruns", "list", "--label", f"run={run_id}", "--limit", "1", "--output", "jsonpath={.items[0].metadata.name}"]
     logging.info(f"running: {" ".join(cmd)}")
     try:
         result = subprocess.run(cmd, capture_output=True, check=True, text=True)
-        cmd = ["cut", "-d/", "-f2"]
-        result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
-        cmd = ["tr", "-d", "\n"]
-        result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
         return result.stdout.strip()
     except subprocess.CalledProcessError as e:
         logging.error("--- DEBUG TKN ---")
