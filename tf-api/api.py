@@ -199,31 +199,18 @@ class CustomHandler(BaseHTTPRequestHandler):
         cmd.append(f"--param=skipProvisioning={skipProvisioning}")
 
         logging.info(f"running: {" ".join(cmd)}")
-        try:
-            result = subprocess.run(cmd, capture_output=True, check=True)
-        except subprocess.CalledProcessError as e:
-            logging.error("--- TKN PIPELINERUN START ---")
-            logging.error(f"1. Command: {e.cmd}")
-            logging.error(f"2. Return Code: {e.returncode}")
-
-            # 3. Check and print STDERR (where errors go)
-            # Note: e.stderr is a string because we used text=True in the run() call.
-            if e.stderr:
-                logging.error("\n3. Standard Error (STDERR):\n" + "=" * 25)
-                logging.error(e.stderr.strip())
-
-            # 4. Check and print STDOUT (might contain context)
-            if e.stdout:
-                logging.error("\n4. Standard Output (STDOUT):\n" + "=" * 25)
-                logging.error(e.stdout.strip())
-
         pipelinerun = {}
         try:
-            cmd = ["tkn", "pipelinerun", "describe", get_run_name(run_id), "-o", "json"]
+            result = subprocess.run(cmd, capture_output=True, check=True, text=True)
+            cmd = ["grep", "PipelineRun started"]
+            result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
+            cmd = ["awk", ""'{print $3}'""]
+            result = subprocess.run(cmd, capture_output=True, check=True, text=True, input=result.stdout)
+            run_name = result.stdout.strip()
+            cmd = ["tkn", "pipelinerun", "describe", run_name, "-o", "json"]
             logging.info(f"running: {" ".join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, check=True)
             pipelinerun = json.loads(result.stdout)
-            # logging.info(f"created pipelinerun:\n{json.dumps(response, indent=2)}")
         except subprocess.CalledProcessError as e:
             logging.error("--- TKN PIPELINERUN START ---")
             logging.error(f"1. Command: {e.cmd}")
@@ -242,6 +229,7 @@ class CustomHandler(BaseHTTPRequestHandler):
 
         # Adding the run UUID to follow the request
         pipelinerun['id'] = run_id
+        logging.info(f"created pipelinerun: {json.dumps(pipelinerun, indent=2)}")
         return pipelinerun
 
 def get_boards(board_type):
