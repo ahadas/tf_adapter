@@ -123,6 +123,8 @@ class CustomHandler(BaseHTTPRequestHandler):
         environment_data = data["environments"][0]["tmt"]["environment"]
         environment_str = json.dumps(environment_data)
 
+        aboot_image_url = ''
+        rootfs_image_url = ''
         image_url = os.environ.get("IMAGE_URL")
         if not image_url:
             compose = (
@@ -136,8 +138,9 @@ class CustomHandler(BaseHTTPRequestHandler):
             parsed_compose = json.loads(compose)
             if "disk_image" in parsed_compose:
                 image_url = parsed_compose["disk_image"]
-            else:
-                image_url = ''
+            elif "boot_image" in parsed_compose and "root_image" in parsed_compose:
+                aboot_image_url = parsed_compose["boot_image"]
+                rootfs_image_url = parsed_compose["root_image"]
 
         hw_target = os.environ.get(BOARD_TYPE)
         if not hw_target:
@@ -158,8 +161,6 @@ class CustomHandler(BaseHTTPRequestHandler):
                "--labels", f"run={run_id}",
                f"--param=plan-name={data['test']['fmf']['name']}",
                #f"--param=test-name={test_name}",
-               f"--param=aboot-image-url=arik",
-               f"--param=rootfs-image-url=arik",
                f"--param=hw-target={hw_target.removesuffix('-ocp')}",
                f"--param=testRunId={run_id}",
                f"--param=testsRepo={git_url}",
@@ -170,7 +171,6 @@ class CustomHandler(BaseHTTPRequestHandler):
                #f"--param=timeout={data['settings']['pipeline'].get('timeout', '')}",
                f"--param=ctx={context_str}",
                f"--param=env={environment_str}",
-               f"--param=image-url={image_url}",
                "--workspace", "name=jumpstarter-client-secret,secret=demo-config",
                "--workspace", "name=test-results,claimName=tmt-results",
                f"--pipeline-timeout={os.environ.get(TIMEOUT)}",
@@ -184,6 +184,13 @@ class CustomHandler(BaseHTTPRequestHandler):
         if 'test_name' in data['test']['fmf'].keys():
             pipelinerun['spec']['params'].append({'name': 'test-name', 'value': data['test']['fmf']['test_name']})
         '''
+        if image_url:
+            cmd.append(f"--param=image-url={image_url}")
+        if aboot_image_url:
+            cmd.append(f"--param=aboot-image-url={aboot_image_url}")
+        if rootfs_image_url:
+            cmd.append(f"--param=rootfs-image-url={rootfs_image_url}")
+
         tmt_image = os.environ.get(TMT_IMAGE)
         if tmt_image:
             cmd.append(f"--param=tmt-image={tmt_image}")
