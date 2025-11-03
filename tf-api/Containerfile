@@ -8,5 +8,6 @@ RUN curl -L https://github.com/tektoncd/cli/releases/download/v0.42.0/tektoncd-c
     rm tektoncd-cli.rpm
 
 RUN pip3 install kubernetes
+RUN pip3 install --extra-index-url https://pkg.jumpstarter.dev/simple jumpstarter-all
 COPY api.py /usr/local/
 ENTRYPOINT ["python3", "/usr/local/api.py"]

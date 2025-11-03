@@ -3,9 +3,9 @@ import json
 import logging
 import uuid
 from kubernetes import client, config
-from kubernetes.client.rest import ApiException
 import os
 import subprocess
+from jumpstarter.config.client import ClientConfigV1Alpha1 as js
 
 config.load_incluster_config()
 
@@ -21,7 +21,7 @@ SKIP_PROVISIONING = "SKIP_PROVISIONING"
 TIMEOUT = "TIMEOUT"
 
 # Board types
-RCAR_S4_TYPE = "rcar_s4"
+RCAR_S4_TYPE = "renesas-rcar-s4"
 RIDE_SX4_TYPE = "qc8775"
 J784S4EVM_TYPE = "j784s4evm"
 
@@ -122,6 +122,8 @@ class CustomHandler(BaseHTTPRequestHandler):
         context_str = json.dumps(context_data)
         environment_data = data["environments"][0]["tmt"]["environment"]
         environment_str = json.dumps(environment_data)
+        variables_data = data["environments"][0]["variables"]
+        variables_str = " ".join(f"-e {key}={value}" for key, value in variables_data.items())
 
         aboot_image_url = ''
         rootfs_image_url = ''
@@ -148,16 +150,14 @@ class CustomHandler(BaseHTTPRequestHandler):
         board = os.environ.get(BOARD)
 
         if board:
-            exporter_labels = [
-                f"device={board}",
-            ]
+            exporter_labels = f"device={board}"
         else:
             board_type = 'qc8775' if hw_target == 'ridesx4' else hw_target.removesuffix("-ocp")
-            exporter_labels = [
-                f"board-type={board_type}",
-            ]
+            if hw_target == 'rcar_s4':
+                board_type = 'renesas-rcar-s4'
+            exporter_labels = f"board-type={board_type}"
 
-        cmd = ["tkn", "pipeline", "start", os.environ.get(PIPELINE),
+        cmd = ["pipeline", "start", os.environ.get(PIPELINE),
                "--labels", f"run={run_id}",
                f"--param=plan-name={data['test']['fmf']['name']}",
                f"--param=test-name={test_name}",
@@ -167,10 +167,11 @@ class CustomHandler(BaseHTTPRequestHandler):
                f"--param=exporter-labels={exporter_labels}",
                f"--param=testBranch={test_branch}",
                f"--param=client-name={data['settings']['pipeline'].get('client', 'demo')}",
-               f"--param=existing-lease-id=019a2121-b92a-7280-acc3-dbafa6a66987",
+               #f"--param=existing-lease-id=019a2121-b92a-7280-acc3-dbafa6a66987",
                #f"--param=timeout={data['settings']['pipeline'].get('timeout', '')}",
                f"--param=ctx={context_str}",
                f"--param=env={environment_str}",
+               f"--param=vars={variables_str}",
                "--workspace", "name=jumpstarter-client-secret,secret=demo-config",
                "--workspace", "name=test-results,claimName=tmt-results",
                f"--pipeline-timeout={os.environ.get(TIMEOUT)}",
@@ -198,30 +199,10 @@ class CustomHandler(BaseHTTPRequestHandler):
         skipProvisioning = os.environ.get(SKIP_PROVISIONING) or 'false'
         cmd.append(f"--param=skipProvisioning={skipProvisioning}")
 
-        logging.info(f"running: {" ".join(cmd)}")
-        pipelinerun = {}
-        try:
-            result = subprocess.run(cmd, capture_output=True, check=True, text=True)
-            cmd = ["tkn", "pipelineruns", "list", "--label", f"run={run_id}", "--limit", "1", "--output", "json"]
-            logging.info(f"running: {" ".join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, check=True)
-            pipelineruns = json.loads(result.stdout)
-            pipelinerun = pipelineruns['items'][0] if len(pipelineruns['items']) > 0 else {}
-        except subprocess.CalledProcessError as e:
-            logging.error("--- TKN PIPELINERUN START ---")
-            logging.error(f"1. Command: {e.cmd}")
-            logging.error(f"2. Return Code: {e.returncode}")
-
-            # 3. Check and print STDERR (where errors go)
-            # Note: e.stderr is a string because we used text=True in the run() call.
-            if e.stderr:
-                logging.error("\n3. Standard Error (STDERR):\n" + "=" * 25)
-                logging.error(e.stderr.strip())
-
-            # 4. Check and print STDOUT (might contain context)
-            if e.stdout:
-                logging.error("\n4. Standard Output (STDOUT):\n" + "=" * 25)
-                logging.error(e.stdout.strip())
+        tkn(*cmd)
+        result = tkn("pipelineruns", "list", "--label", f"run={run_id}", "--limit", "1", "--output", "json")
+        pipelineruns = json.loads(result.stdout) if result.stdout else {}
+        pipelinerun = pipelineruns['items'][0] if len(pipelineruns['items']) > 0 else {}
 
         # Adding the run UUID to follow the request
         pipelinerun['id'] = run_id
@@ -229,39 +210,38 @@ class CustomHandler(BaseHTTPRequestHandler):
         return pipelinerun
 
 def get_boards(board_type):
-    exporters = []
-    try:
-        api_instance = client.CustomObjectsApi()
-        exporters = api_instance.list_namespaced_custom_object(
-            group='jumpstarter.dev',
-            version='v1alpha1',
-            namespace=EXPORTERS_NAMESPACE,
-            plural='exporters',
-            label_selector=f"board-type={board_type}",
-        )
-    except ApiException as e:
-        logging.error("Exception when calling CustomObjectsApi->get_namespaced_custom_object: %s\n" % e)
+    client = js.load('demo')
+    result = client.list_exporters(include_leases=True, filter=f'board-type={board_type}')
 
     def to_board(exporter):
-        exporter['name'] = exporter['metadata']['name']
-        labels = exporter['metadata']['labels']
-        exporter['enabled'] = labels.get('enabled', 'true') == 'true'
-        exporter['borrowed'] = False
-        return exporter
+        board = {}
+        board['name'] = exporter.name
+        board['enabled'] = exporter.labels.get('enabled', 'true') == 'true'
+        board['borrowed'] = True if exporter.lease else False
+        return board
 
     #logging.info(f"exporters:\n{json.dumps(exporters, indent=2)}")
-    return list(map(to_board, exporters['items']))
+    return list(map(to_board, result.exporters))
 
 def get_state_and_result(run_id):
-    runStatus = 'Unknown'
+    result = tkn("pipelineruns", "list", "--label", f"run={run_id}", "--limit", "1", "--output",
+                 'jsonpath={.items[0].status.conditions[?(@.type=="Succeeded")].status}', text=True)
+    run_status = result.stdout
+    logging.info(f"runStatus for {run_id}: {run_status}")
+    if not run_status or run_status == 'False':
+        return 'complete', 'failed'
+    elif run_status == 'True':
+        return 'complete', 'passed'
+    else:
+        return 'running', 'unknown'
+
+def tkn(*args, text=None):
+    cmd = ['tkn', *args]
+    logging.info(f"tkn running: {" ".join(cmd)}")
     try:
-        cmd = ["tkn", "pipelineruns", "list", "--label", f"run={run_id}", "--limit", "1", "--output",
-              'jsonpath={.items[0].status.conditions[?(@.type=="Succeeded")].status}']
-        logging.info(f"running: {" ".join(cmd)}")
-        result = subprocess.run(cmd, capture_output=True, check=True, text=True)
-        runStatus = result.stdout
+        return subprocess.run(cmd, capture_output=True, check=True, text=text)
     except subprocess.CalledProcessError as e:
-        logging.error("--- TKN PIPELINERUN START ---")
+        logging.error("--- DEBUG TKN ---")
         logging.error(f"1. Command: {e.cmd}")
         logging.error(f"2. Return Code: {e.returncode}")
 
@@ -275,14 +255,6 @@ def get_state_and_result(run_id):
         if e.stdout:
             logging.error("\n4. Standard Output (STDOUT):\n" + "=" * 25)
             logging.error(e.stdout.strip())
-
-    logging.info(f"runStatus for {run_id}: {runStatus}")
-    if not runStatus or runStatus == 'False':
-        return 'complete', 'failed'
-    elif runStatus == 'True':
-        return 'complete', 'passed'
-    else:
-        return 'running', 'unknown'
 
 def run(server_class=HTTPServer, handler_class=CustomHandler, port=8080):
     server_address = ('', port)
