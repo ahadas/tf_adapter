@@ -49,16 +49,11 @@ class CustomHandler(BaseHTTPRequestHandler):
                         self.wfile.write(data)
                     case 'pipeline.log':
                         try:
-                            result = subprocess.run(
-                                ['tkn', 'pipelineruns', 'logs', get_run_name(run_id)],
-                                capture_output=True,
-                                check=True
-                            )
-                            logging.info(f"Return Code: {result.returncode}")
+                            stdout = log(run_id)
                             self.send_response(200)
                             self.send_header('Content-type', 'text/plain')
                             self.end_headers()
-                            self.wfile.write(result.stdout)
+                            self.wfile.write(stdout)
                         except subprocess.CalledProcessError as e:
                             logging.error(f"Command failed with error: {e}")
                             logging.error(f"Stderr: {e.stderr}")
@@ -78,12 +73,17 @@ class CustomHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/html")
         self.end_headers()
 
-def get_run_name(run_id):
-    cmd = ["tkn", "pipelineruns", "list", "--label", f"run={run_id}", "--limit", "1", "--output", "jsonpath={.items[0].metadata.name}"]
-    logging.info(f"running: {" ".join(cmd)}")
+def log(run_id):
+    result = tkn("pipelineruns", "list", "--label", f"run={run_id}", "--limit", "1", "--output",
+                 "jsonpath={.items[0].metadata.name}", text=True)
+    result = tkn('pipelineruns', 'logs', result.stdout.strip())
+    return result.stdout
+
+def tkn(*args, text=None):
+    cmd = ['tkn', *args]
+    logging.info(f"tkn running: {" ".join(cmd)}")
     try:
-        result = subprocess.run(cmd, capture_output=True, check=True, text=True)
-        return result.stdout.strip()
+        return subprocess.run(cmd, capture_output=True, check=True, text=text)
     except subprocess.CalledProcessError as e:
         logging.error("--- DEBUG TKN ---")
         logging.error(f"1. Command: {e.cmd}")
