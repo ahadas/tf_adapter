@@ -76,7 +76,7 @@ spec:
             - containerPort: 8080
           env:
             - name: TIMEOUT
-              value: 3h0m0s
+              value: 72h0m0s
             - name: PIPELINE
               value: test-pipeline
             - name: EXPORTERS_NAMESPACE
