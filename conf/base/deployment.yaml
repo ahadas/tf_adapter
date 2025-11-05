@@ -85,7 +85,16 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+          volumeMounts:
+            - name: secret-volume
+              readOnly: true
+              mountPath: /.config/jumpstarter/clients
       serviceAccountName: tf-api
+      volumes:
+        - name: secret-volume
+          secret:
+            secretName: demo-config
+            defaultMode: 420
 ---
 apiVersion: v1
 kind: ServiceAccount
