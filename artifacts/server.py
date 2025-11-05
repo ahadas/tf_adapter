@@ -21,7 +21,10 @@ class CustomHandler(BaseHTTPRequestHandler):
             run_id = path[1]
             workdir = f"/srv/results/{run_id}"
             if not os.path.isdir(workdir):
+                logging.error(f"directory not found for run_id: {run_id} at {workdir}")
                 self.send_response(500)
+                self.send_header('Content-type', 'text/plain')
+                self.end_headers()
                 return
             if path[2] == '':
                 if not os.path.exists(f"{workdir}/results.html"):
@@ -58,6 +61,8 @@ class CustomHandler(BaseHTTPRequestHandler):
                             logging.error(f"Command failed with error: {e}")
                             logging.error(f"Stderr: {e.stderr}")
                             self.send_response(500)
+                            self.send_header('Content-type', 'text/plain')
+                            self.end_headers()
                     case 'artifacts':
                         with open(f"/srv/results/{'/'.join(path)}", 'rb') as f:
                             data = f.read()
@@ -67,6 +72,8 @@ class CustomHandler(BaseHTTPRequestHandler):
                         self.wfile.write(data)
                     case _:
                         self.send_response(400)
+                        self.send_header('Content-type', 'text/plain')
+                        self.end_headers()
 
     def do_HEAD(self):
         self.send_response(200)
