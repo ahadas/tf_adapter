@@ -228,7 +228,7 @@ def get_state_and_result(run_id):
                  'jsonpath={.items[0].status.conditions[?(@.type=="Succeeded")].status}', text=True)
     run_status = result.stdout
     logging.info(f"runStatus for {run_id}: {run_status}")
-    if not run_status or run_status == 'False':
+    if run_status == 'False':
         return 'complete', 'failed'
     elif run_status == 'True':
         return 'complete', 'passed'
