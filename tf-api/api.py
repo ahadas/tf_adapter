@@ -11,6 +11,7 @@ config.load_incluster_config()
 
 POD_NAMESPACE = os.environ.get("POD_NAMESPACE")
 EXPORTERS_NAMESPACE = os.environ.get("EXPORTERS_NAMESPACE", POD_NAMESPACE)
+IMAGE_REPLACEMENTS = os.environ.get("IMAGE_REPLACEMENTS", '{}')
 
 # Environment variables
 BOARD = "BOARD"
@@ -143,6 +144,13 @@ class CustomHandler(BaseHTTPRequestHandler):
             elif "boot_image" in parsed_compose and "root_image" in parsed_compose:
                 aboot_image_url = parsed_compose["boot_image"]
                 rootfs_image_url = parsed_compose["root_image"]
+        replacements = json.loads(IMAGE_REPLACEMENTS)
+        for old, new in replacements.items():
+            if image_url:
+                image_url = image_url.replace(old, new)
+            if aboot_image_url:
+                aboot_image_url = aboot_image_url.replace(old, new)
+                rootfs_image_url = rootfs_image_url.replace(old, new)
 
         hw_target = os.environ.get(BOARD_TYPE)
         if not hw_target:
