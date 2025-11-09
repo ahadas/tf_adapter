@@ -19,6 +19,20 @@ class CustomHandler(BaseHTTPRequestHandler):
             self.end_headers()
         else:
             run_id = path[1]
+            if path[2] == 'pipeline.log':
+                try:
+                    stdout = log(run_id)
+                    self.send_response(200)
+                    self.send_header('Content-type', 'text/plain')
+                    self.end_headers()
+                    self.wfile.write(stdout)
+                except subprocess.CalledProcessError as e:
+                    logging.error(f"Command failed with error: {e}")
+                    logging.error(f"Stderr: {e.stderr}")
+                    self.send_response(500)
+                    self.send_header('Content-type', 'text/plain')
+                    self.end_headers()
+                return
             workdir = f"/srv/results/{run_id}"
             if not os.path.isdir(workdir):
                 logging.error(f"directory not found for run_id: {run_id} at {workdir}")
@@ -50,19 +64,6 @@ class CustomHandler(BaseHTTPRequestHandler):
                         self.send_header('Content-type', 'application/xml')
                         self.end_headers()
                         self.wfile.write(data)
-                    case 'pipeline.log':
-                        try:
-                            stdout = log(run_id)
-                            self.send_response(200)
-                            self.send_header('Content-type', 'text/plain')
-                            self.end_headers()
-                            self.wfile.write(stdout)
-                        except subprocess.CalledProcessError as e:
-                            logging.error(f"Command failed with error: {e}")
-                            logging.error(f"Stderr: {e.stderr}")
-                            self.send_response(500)
-                            self.send_header('Content-type', 'text/plain')
-                            self.end_headers()
                     case 'artifacts':
                         with open(f"/srv/results/{'/'.join(path)}", 'rb') as f:
                             data = f.read()
