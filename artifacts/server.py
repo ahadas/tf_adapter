@@ -84,7 +84,7 @@ class CustomHandler(BaseHTTPRequestHandler):
 def log(run_id):
     result = tkn("pipelineruns", "list", "--label", f"run={run_id}", "--limit", "1", "--output",
                  "jsonpath={.items[0].metadata.name}", text=True)
-    result = tkn('pipelineruns', 'logs', result.stdout.strip())
+    result = tkn('pipelineruns', 'logs', "--timestamps", result.stdout.strip())
     log = result.stdout.decode('utf-8', errors='ignore').encode('utf-8')
     return log
 
